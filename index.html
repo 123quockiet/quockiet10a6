@@ -1,0 +1,2972 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#020108" />
+  <title>Hạt Giống Tro Tàn – Đại Số Vectơ | Educational RPG Platformer</title>
+  <meta name="description" content="Tựa game nhập vai đi cảnh 2D Pixel Art kết hợp giải đố đại số vectơ lớp 10. Tiêu diệt 10 quái vật và Boss Malakar!" />
+  
+  <!-- High-Legibility Vietnamese & Modern RPG Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet" />
+  
+  <!-- Phaser 3.60.0 Engine CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #020108;
+      font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: none;
+      color: #ffffff;
+    }
+
+    #game-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: radial-gradient(ellipse at 50% 35%, #180c30 0%, #090317 60%, #020108 100%);
+      overflow: hidden;
+    }
+
+    #game-container canvas {
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -webkit-crisp-edges;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      display: block;
+      box-shadow: 0 0 50px rgba(138, 43, 226, 0.45), 0 0 100px rgba(40, 10, 80, 0.6);
+      border-radius: 4px;
+      max-width: 100vw;
+      max-height: 100vh;
+      touch-action: none;
+    }
+
+    /* CSS Fullscreen Maximize Fallback & Stretch Fill Mode */
+    body.is-fullscreen,
+    #game-container.pseudo-fullscreen {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 99990 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #020108 !important;
+    }
+
+    /* Chế độ Phóng to Tràn Viền 100% (Loại bỏ viền đen theo ý muốn trên PC) */
+    #game-container.stretch-mode canvas {
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: 100vw !important;
+      max-height: 100vh !important;
+      margin: 0 !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+
+    /* Floating UI Controls for PC & Mobile */
+    .hud-controls {
+      position: fixed;
+      bottom: 12px;
+      right: 16px;
+      display: flex;
+      gap: 10px;
+      z-index: 99999;
+      pointer-events: auto;
+    }
+
+    .hud-btn {
+      background: rgba(24, 34, 58, 0.88);
+      border: 2px solid #4a6fa5;
+      color: #ffd700;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-weight: 700;
+      font-size: 11px;
+      padding: 8px 14px;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(6px);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      touch-action: manipulation;
+    }
+
+    .hud-btn:hover {
+      background: rgba(42, 58, 96, 0.95);
+      border-color: #ffd700;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(255, 215, 0, 0.4);
+      color: #ffffff;
+    }
+
+    .hud-btn:active {
+      transform: translateY(1px);
+    }
+
+    /* Virtual Touch Controls for Mobile */
+    .virtual-controls {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100vw;
+      height: 150px;
+      display: none;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding: 0 24px 18px 24px;
+      z-index: 99990;
+      pointer-events: none;
+    }
+
+    .virtual-controls.visible {
+      display: flex;
+    }
+
+    .dpad-group, .action-group {
+      display: flex;
+      gap: 14px;
+      pointer-events: auto;
+      align-items: flex-end;
+    }
+
+    .vbtn {
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      background: rgba(18, 26, 48, 0.82);
+      border: 2px solid #4a75ba;
+      color: #ffffff;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-weight: 800;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), inset 0 0 10px rgba(0, 229, 255, 0.15);
+      backdrop-filter: blur(8px);
+      transition: transform 0.08s ease, background 0.08s ease, border-color 0.08s ease;
+      cursor: pointer;
+    }
+
+    .vbtn:active, .vbtn.active {
+      background: rgba(0, 229, 255, 0.45);
+      border-color: #ffd700;
+      transform: scale(0.92);
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+      color: #ffd700;
+    }
+
+    .vbtn-jump {
+      width: 72px;
+      height: 72px;
+      background: rgba(26, 42, 80, 0.88);
+      border-color: #00e5ff;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+    }
+
+    .vbtn-interact {
+      width: 58px;
+      height: 58px;
+      background: rgba(45, 30, 68, 0.88);
+      border-color: #ffd700;
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    /* Mobile Responsive HUD & Controls */
+    @media (max-width: 768px), (max-height: 500px) {
+      .hud-controls {
+        top: 10px;
+        bottom: auto;
+        right: 10px;
+        gap: 6px;
+      }
+      .hud-btn {
+        padding: 7px 11px;
+        font-size: 13px;
+        border-radius: 6px;
+      }
+      .hud-btn .btn-text {
+        display: none;
+      }
+      .virtual-controls {
+        padding: 0 16px 12px 16px;
+        height: 120px;
+      }
+      .vbtn {
+        width: 54px;
+        height: 54px;
+        font-size: 18px;
+      }
+      .vbtn-jump {
+        width: 62px;
+        height: 62px;
+        font-size: 11px;
+      }
+      .vbtn-interact {
+        width: 48px;
+        height: 48px;
+        font-size: 10px;
+      }
+    }
+
+    /* Mobile Landscape Orientation Hint */
+    .orientation-hint {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(4, 2, 12, 0.94);
+      z-index: 100000;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      backdrop-filter: blur(8px);
+    }
+
+    .orientation-hint.active {
+      display: flex;
+    }
+
+    .orientation-box {
+      background: rgba(20, 28, 54, 0.95);
+      border: 2px solid #ffd700;
+      border-radius: 14px;
+      padding: 26px 20px;
+      max-width: 330px;
+      box-shadow: 0 0 35px rgba(255, 215, 0, 0.35);
+    }
+
+    .rotate-phone-icon {
+      font-size: 46px;
+      margin-bottom: 12px;
+      animation: rotatePhoneAnim 2.2s infinite ease-in-out;
+    }
+
+    @keyframes rotatePhoneAnim {
+      0%, 15% { transform: rotate(0deg); }
+      50%, 65% { transform: rotate(90deg); }
+      90%, 100% { transform: rotate(0deg); }
+    }
+
+    .orient-title {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-weight: 800;
+      font-size: 16px;
+      color: #ffd700;
+      margin-bottom: 8px;
+    }
+
+    .orient-desc {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 12px;
+      color: #ccddff;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .dismiss-orient-btn {
+      background: #00e5ff;
+      color: #030a1c;
+      border: none;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-weight: 800;
+      font-size: 11px;
+      padding: 9px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      text-transform: uppercase;
+      box-shadow: 0 4px 12px rgba(0, 229, 255, 0.4);
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container"></div>
+
+  <!-- Floating HUD Controls -->
+  <div class="hud-controls">
+    <button id="inventory-btn" class="hud-btn" title="Mở Túi đồ & Chỉ số [Phím I hoặc C]"><span class="btn-icon">🎒</span> <span class="btn-text">TÚI ĐỒ [I]</span></button>
+    <button id="mute-btn" class="hud-btn" title="Bật / Tắt Âm Thanh [Phím M]"><span class="btn-icon" id="mute-icon">🔊</span> <span class="btn-text" id="mute-text">ÂM THANH [M]</span></button>
+    <button id="stretch-btn" class="hud-btn" title="Phóng to tràn viền 100% / Tỉ lệ chuẩn 16:9 [Phím Z]"><span class="btn-icon">📐</span> <span class="btn-text">TRÀN VIỀN [Z]</span></button>
+    <button id="fullscreen-btn" class="hud-btn" title="Bật / Tắt Toàn Màn Hình [Phím F hoặc F11]"><span class="btn-icon" id="fs-icon">🖥️</span> <span class="btn-text" id="fs-text">TOÀN MÀN HÌNH [F]</span></button>
+  </div>
+
+  <!-- Virtual Mobile Touch Controls -->
+  <div id="virtual-controls" class="virtual-controls">
+    <div class="dpad-group">
+      <button id="vbtn-left" class="vbtn" aria-label="Sang trái">◀</button>
+      <button id="vbtn-right" class="vbtn" aria-label="Sang phải">▶</button>
+    </div>
+    <div class="action-group">
+      <button id="vbtn-interact" class="vbtn vbtn-interact" aria-label="Tương tác">💬 [E]</button>
+      <button id="vbtn-jump" class="vbtn vbtn-jump" aria-label="Nhảy">🦘 NHẢY</button>
+    </div>
+  </div>
+
+  <!-- Mobile Landscape Orientation Hint -->
+  <div id="orientation-hint" class="orientation-hint">
+    <div class="orientation-box">
+      <div class="rotate-phone-icon">📱 ➔ 🔄</div>
+      <p class="orient-title">XOAY NGANG ĐIỆN THOẠI</p>
+      <p class="orient-desc">Để có tầm nhìn phiêu lưu rộng nhất và phím bấm hai tay thoải mái nhất!</p>
+      <button id="dismiss-orient-btn" class="dismiss-orient-btn">TIẾP TỤC CHƠI</button>
+    </div>
+  </div>
+
+  <script>
+// ============================================================================
+// HẠT GIỐNG TRO TÀN – ĐẠI SỐ VECTƠ | COMPLETE SINGLE-FILE GAME ENGINE
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// 1. GAME DATA & 10 ACCURATE VECTOR QUESTIONS
+// ----------------------------------------------------------------------------
+const GAME_DATA = {
+  player: {
+    name: "Kael",
+    title: "Hiệp Sĩ Ánh Sáng",
+    maxHp: 100,
+    hp: 100,
+    maxMp: 50,
+    mp: 50,
+    exp: 45,
+    maxExp: 100,
+    level: 5,
+    hearts: 3,
+    gold: 50,
+    gems: 5,
+    keys: 1,
+    attack: 45,
+    defense: 30,
+    speed: 210,
+    crit: 5,
+    inventory: [
+      { id: "pot_hp", name: "Bình Máu", count: 3, icon: "🧪", type: "consumable", effect: { hp: 40 } },
+      { id: "pot_mp", name: "Bình Mana", count: 2, icon: "🧪", type: "consumable", effect: { mp: 30 } },
+      { id: "iron_sword", name: "Kiếm Rèn Sắt", count: 1, icon: "⚔️", type: "weapon" },
+      { id: "gold_key", name: "Chìa Khóa Vàng", count: 1, icon: "🗝️", type: "key" }
+    ],
+    equipment: {
+      helmet: "Mũ Chiến Binh",
+      armor: "Giáp Xích Lam",
+      sword: "Thanh Gươm Ánh Sáng",
+      shield: "Khiên Thép Kiên Cố"
+    },
+    skills: ["Chém Mạnh", "Lướt", "Bão Kiếm"]
+  },
+
+  shopItems: [
+    { id: "pot_hp", name: "Bình Máu", cost: 10, desc: "Hồi ngay 40 HP", effect: { hp: 40 } },
+    { id: "pot_mp", name: "Bình Mana", cost: 15, desc: "Hồi ngay 30 MP", effect: { mp: 30 } },
+    { id: "sword_iron", name: "Kiếm Sắt", cost: 50, desc: "+15 Sức Tấn Công (ATK)", effect: { attack: 15 } },
+    { id: "axe_heavy", name: "Rìu Chiến", cost: 120, desc: "+30 Sức Tấn Công (ATK)", effect: { attack: 30 } }
+  ],
+
+  dialogues: {
+    wizardIntro: [
+      { speaker: "Pháp Sư Eldrin", text: "Chào dũng sĩ Kael! Rừng Hoang Dã đã bị Ma Giáp Malakar nguyền rủa bằng kết giới bóng tối." },
+      { speaker: "Pháp Sư Eldrin", text: "Thứ duy nhất phá tan phong ấn là 'Đại Số Vectơ' – cội nguồn cân bằng phương và hướng của vũ trụ!" },
+      { speaker: "Pháp Sư Eldrin", text: "Hãy tiến sang phải, giải mã phong ấn vectơ từ 10 quái vật để cứu lấy Hạt Giống Tro Tàn!" }
+    ],
+    arthurShop: [
+      { speaker: "Thợ Rèn Arthur", text: "Chào chàng hiệp sĩ! Ta có trang bị sắc bén và bình dược phẩm tốt nhất vùng biên thùy này." }
+    ]
+  },
+
+  monsters: [
+    // Quái nhỏ (Cấp 1)
+    { id: "slime", name: "Slime Xanh Lục", type: "small", hp: 80, maxHp: 80, attack: 12, exp: 25, gold: 15, x: 750, questionIndex: 0 },
+    { id: "mushroom", name: "Nấm Độc Quỷ", type: "small", hp: 100, maxHp: 100, attack: 14, exp: 30, gold: 20, x: 1350, questionIndex: 1 },
+    { id: "spider", name: "Nhện Hang Độc", type: "small", hp: 120, maxHp: 120, attack: 16, exp: 35, gold: 25, x: 1950, questionIndex: 2 },
+    { id: "bat", name: "Dơi Bóng Tối", type: "small", hp: 140, maxHp: 140, attack: 18, exp: 40, gold: 30, x: 2550, questionIndex: 3 },
+    
+    // Quái vừa (Cấp 2)
+    { id: "panther", name: "Báo Bóng Đêm", type: "medium", hp: 200, maxHp: 200, attack: 22, exp: 55, gold: 40, x: 3200, questionIndex: 4 },
+    { id: "orc_axe", name: "Orc Cầm Rìu", type: "medium", hp: 260, maxHp: 260, attack: 26, exp: 65, gold: 50, x: 3850, questionIndex: 5 },
+    { id: "orc_enrage", name: "Orc Cuồng Nộ (Enrage)", type: "medium", hp: 330, maxHp: 330, attack: 32, exp: 80, gold: 65, x: 4500, questionIndex: 6 },
+    { id: "orc_leader", name: "Orc Thủ Lĩnh Cầm Búa", type: "medium", hp: 420, maxHp: 420, attack: 38, exp: 100, gold: 80, x: 5150, questionIndex: 7 },
+
+    // Trùm cuối (Cấp 3)
+    { id: "malakar_p1", name: "Malakar - Thần Ma Giáp (Giai Đoạn 1)", type: "boss", hp: 25000, maxHp: 50000, attack: 45, exp: 250, gold: 150, x: 5900, questionIndex: 8 },
+    { id: "malakar_p2", name: "Malakar - Thần Ma Giáp (Đòn Kết Liễu)", type: "boss", hp: 50000, maxHp: 50000, attack: 55, exp: 500, gold: 300, x: 6250, questionIndex: 9 }
+  ],
+
+  questions: [
+    {
+      id: 1,
+      monsterTitle: "QUÁI VẬT: SLIME XANH (Cơ Bản)",
+      question: "Trong toán học, vectơ là một đoạn thẳng như thế nào?",
+      options: [
+        "A. Không có hướng",
+        "B. Có hướng",
+        "C. Có độ dài luôn bằng 1",
+        "D. Bị giới hạn bởi một đường tròn"
+      ],
+      correct: 1,
+      hint: "Vectơ là một đoạn thẳng có hướng (xác định điểm gốc và điểm ngọn)."
+    },
+    {
+      id: 2,
+      monsterTitle: "QUÁI VẬT: NẤM ĐỘC QUỶ (Cơ Bản)",
+      question: "Với vectơ AB⃗ (ký hiệu AB), điểm A được gọi là gì?",
+      options: [
+        "A. Điểm cuối",
+        "B. Trung điểm",
+        "C. Điểm đầu (gốc)",
+        "D. Trọng tâm"
+      ],
+      correct: 2,
+      hint: "Điểm thứ nhất A là điểm đầu (gốc), điểm thứ hai B là điểm cuối (ngọn)."
+    },
+    {
+      id: 3,
+      monsterTitle: "QUÁI VẬT: NHỆN HANG (Cơ Bản)",
+      question: "Hai vectơ được gọi là cùng phương khi giá của chúng như thế nào?",
+      options: [
+        "A. Vuông góc với nhau",
+        "B. Cắt nhau tại một điểm",
+        "C. Song song hoặc trùng nhau",
+        "D. Tạo với nhau góc 45°"
+      ],
+      correct: 2,
+      hint: "Giá của vectơ là đường thẳng đi qua gốc và ngọn. Cùng phương <=> giá song song hoặc trùng nhau."
+    },
+    {
+      id: 4,
+      monsterTitle: "QUÁI VẬT: DƠI BÓNG TỐI (Cơ Bản)",
+      question: "Hai vectơ bằng nhau khi và chỉ khi chúng có đặc điểm gì?",
+      options: [
+        "A. Cùng phương và cùng độ dài",
+        "B. Cùng hướng và cùng độ dài",
+        "C. Có chung điểm đầu",
+        "D. Ngược hướng và cùng độ dài"
+      ],
+      correct: 1,
+      hint: "Hai vectơ bằng nhau khi chúng CÙNG HƯỚNG và CÙNG ĐỘ DÀI: a⃗ = b⃗."
+    },
+    {
+      id: 5,
+      monsterTitle: "QUÁI VẬT: BÁO BÓNG ĐÊM (Thông Hiểu)",
+      question: "Vectơ-không (ký hiệu 0⃗) là vectơ có tính chất nào sau đây?",
+      options: [
+        "A. Điểm đầu và điểm cuối trùng nhau",
+        "B. Độ dài bằng 10",
+        "C. Không có phương và hướng",
+        "D. Luôn vuông góc với mọi vectơ khác"
+      ],
+      correct: 0,
+      hint: "Vectơ-không có điểm đầu và điểm cuối trùng nhau (AA⃗ = 0⃗), độ dài |0⃗| = 0."
+    },
+    {
+      id: 6,
+      monsterTitle: "QUÁI VẬT: ORC CẦM RÌU (Quy Tắc 3 Điểm)",
+      question: "Theo quy tắc 3 điểm (cộng liên tiếp), với 3 điểm A, B, C bất kỳ, tổng AB⃗ + BC⃗ bằng vectơ nào?",
+      options: [
+        "A. CA⃗",
+        "B. AC⃗",
+        "C. BA⃗",
+        "D. 0⃗"
+      ],
+      correct: 1,
+      hint: "Quy tắc nối đuôi: AB⃗ + BC⃗ = AC⃗ (điểm B ở giữa triệt tiêu nối A sang C)."
+    },
+    {
+      id: 7,
+      monsterTitle: "QUÁI VẬT: ORC CUỒNG NỘ (Quy Tắc Hình Bình Hành)",
+      question: "Nếu ABCD là hình bình hành thì theo quy tắc hình bình hành, tổng AB⃗ + AD⃗ bằng vectơ nào?",
+      options: [
+        "A. BD⃗",
+        "B. DB⃗",
+        "C. AC⃗",
+        "D. CA⃗"
+      ],
+      correct: 2,
+      hint: "Quy tắc hình bình hành: Tổng 2 cạnh chung gốc bằng vectơ đường chéo chung gốc đó (AB⃗ + AD⃗ = AC⃗)."
+    },
+    {
+      id: 8,
+      monsterTitle: "QUÁI VẬT: ORC THỦ LĨNH CẦM BÚA (Tính Chất Trung Điểm)",
+      question: "Cho điểm I là trung điểm của đoạn thẳng AB. Khẳng định nào sau đây là ĐÚNG?",
+      options: [
+        "A. IA⃗ + IB⃗ = 0⃗",
+        "B. IA⃗ = IB⃗",
+        "C. AI⃗ + BI⃗ = AB⃗",
+        "D. IA⃗ - IB⃗ = 0⃗"
+      ],
+      correct: 0,
+      hint: "I là trung điểm AB => IA⃗ và IB⃗ là 2 vectơ đối nhau => IA⃗ + IB⃗ = 0⃗."
+    },
+    {
+      id: 9,
+      monsterTitle: "TRÙM CUỐI: MALAKAR (Giai Đoạn 1 - Trọng Tâm Tam Giác)",
+      question: "Cho G là trọng tâm của tam giác ABC. Đẳng thức vectơ nào sau đây là ĐÚNG?",
+      options: [
+        "A. GA⃗ + GB⃗ + GC⃗ = 0⃗",
+        "B. GA⃗ + GB⃗ = GC⃗",
+        "C. GA⃗ = GB⃗ = GC⃗",
+        "D. AB⃗ + BC⃗ + CA⃗ = GA⃗"
+      ],
+      correct: 0,
+      hint: "Tính chất trọng tâm: G là điểm cân bằng của 3 đỉnh tam giác: GA⃗ + GB⃗ + GC⃗ = 0⃗."
+    },
+    {
+      id: 10,
+      monsterTitle: "TRÙM CUỐI: MALAKAR (Đòn Kết Liễu - Tọa Độ Vectơ Oxy)",
+      question: "Trong mặt phẳng tọa độ Oxy, cho a⃗ = (2; 3) và b⃗ = (1; -2). Tọa độ của vectơ tổng a⃗ + b⃗ là bao nhiêu?",
+      options: [
+        "A. (1; 5)",
+        "B. (3; 1)",
+        "C. (2; -6)",
+        "D. (3; 5)"
+      ],
+      correct: 1,
+      hint: "Cộng từng tọa độ: x = 2 + 1 = 3; y = 3 + (-2) = 1 => Tọa độ tổng là (3; 1)."
+    }
+  ]
+};
+
+window.defeatedMonsters = [];
+
+// ----------------------------------------------------------------------------
+// 2. RETRO WEB AUDIO SYNTHESIZER
+// ----------------------------------------------------------------------------
+class RetroAudioSynth {
+  constructor() {
+    this.ctx = null;
+    this.isMuted = false;
+    this.bgmTimer = null;
+    this.bgmStep = 0;
+    this.init();
+  }
+
+  init() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (AudioCtx) this.ctx = new AudioCtx();
+  }
+
+  resume() {
+    if (!this.ctx) this.init();
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
+
+  toggleMute() {
+    this.isMuted = !this.isMuted;
+    if (this.isMuted) {
+      this.stopBGM();
+    } else {
+      this.startBGM();
+    }
+    return this.isMuted;
+  }
+
+  playTone(freq, type, duration, vol = 0.2, freqEnd = null) {
+    if (this.isMuted || !this.ctx) return;
+    this.resume();
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+      if (freqEnd !== null) {
+        osc.frequency.exponentialRampToValueAtTime(Math.max(10, freqEnd), this.ctx.currentTime + duration);
+      }
+      gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + duration);
+    } catch(e) {}
+  }
+
+  playJump() {
+    this.playTone(180, 'square', 0.16, 0.18, 480);
+  }
+
+  playSwordSlash() {
+    this.playTone(850, 'sawtooth', 0.18, 0.25, 120);
+  }
+
+  playCritHit() {
+    if (this.isMuted || !this.ctx) return;
+    this.resume();
+    [220, 440, 880, 1400].forEach((f) => {
+      this.playTone(f, 'sawtooth', 0.25, 0.25, 80);
+    });
+  }
+
+  playPlayerHurt() {
+    this.playTone(160, 'square', 0.22, 0.35, 45);
+  }
+
+  playMonsterAttack() {
+    this.playTone(320, 'sawtooth', 0.22, 0.3, 70);
+  }
+
+  playCorrect() {
+    if (this.isMuted || !this.ctx) return;
+    this.resume();
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    notes.forEach((freq, idx) => {
+      setTimeout(() => this.playTone(freq, 'triangle', 0.2, 0.25), idx * 75);
+    });
+  }
+
+  playWrong() {
+    if (this.isMuted || !this.ctx) return;
+    this.resume();
+    this.playTone(200, 'sawtooth', 0.25, 0.3, 100);
+    setTimeout(() => this.playTone(150, 'sawtooth', 0.35, 0.35, 65), 120);
+  }
+
+  playLevelUp() {
+    if (this.isMuted || !this.ctx) return;
+    this.resume();
+    const arpeggio = [440, 554, 659, 880, 1108, 1318, 1760];
+    arpeggio.forEach((note, i) => {
+      setTimeout(() => this.playTone(note, 'triangle', 0.22, 0.25), i * 60);
+    });
+  }
+
+  playCoin() {
+    this.playTone(987.77, 'sine', 0.08, 0.2);
+    setTimeout(() => this.playTone(1318.51, 'sine', 0.22, 0.25), 70);
+  }
+
+  playClick() {
+    this.playTone(800, 'triangle', 0.04, 0.12, 1200);
+  }
+
+  startBGM() {
+    if (this.bgmTimer || this.isMuted) return;
+    this.resume();
+    const melody = [
+      261.63, 0, 329.63, 392.00, 0, 329.63, 261.63, 0,
+      293.66, 0, 349.23, 440.00, 0, 349.23, 293.66, 0,
+      329.63, 0, 392.00, 523.25, 0, 392.00, 329.63, 0,
+      246.94, 0, 293.66, 392.00, 0, 293.66, 246.94, 0
+    ];
+    this.bgmStep = 0;
+    this.bgmTimer = setInterval(() => {
+      if (this.isMuted) return;
+      const freq = melody[this.bgmStep % melody.length];
+      if (freq > 0) {
+        this.playTone(freq, 'triangle', 0.16, 0.06);
+        this.playTone(freq / 2, 'sine', 0.18, 0.07);
+      }
+      this.bgmStep++;
+    }, 180);
+  }
+
+  stopBGM() {
+    if (this.bgmTimer) {
+      clearInterval(this.bgmTimer);
+      this.bgmTimer = null;
+    }
+  }
+}
+const audioSynth = new RetroAudioSynth();
+
+// ----------------------------------------------------------------------------
+// 3. PRELOAD SCENE
+// ----------------------------------------------------------------------------
+class PreloadScene extends Phaser.Scene {
+  constructor() {
+    super('PreloadScene');
+  }
+
+  preload() {
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+
+    this.add.rectangle(w / 2, h / 2, w, h, 0x090514);
+
+    this.add.text(w / 2, h / 2 - 90, 'HẠT GIỐNG TRO TÀN', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '900',
+      fontSize: '36px',
+      color: '#ffd700',
+      stroke: '#000000',
+      strokeThickness: 6
+    }).setOrigin(0.5);
+
+    this.add.text(w / 2, h / 2 - 40, '— ĐẠI SỐ VECTƠ —', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '16px',
+      color: '#00e5ff',
+      letterSpacing: 2
+    }).setOrigin(0.5);
+
+    const barW = 460;
+    const barH = 26;
+    const barX = w / 2 - barW / 2;
+    const barY = h / 2 + 35;
+
+    const barBg = this.add.rectangle(w / 2, barY + barH / 2, barW, barH, 0x171b30);
+    barBg.setStrokeStyle(3, 0xffd700);
+
+    const progressFill = this.add.rectangle(barX + 3, barY + 3, 0, barH - 6, 0x00ff88).setOrigin(0, 0);
+
+    const statusText = this.add.text(w / 2, barY + barH + 25, 'ĐANG TẢI TÀI NGUYÊN... 0%', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '600',
+      fontSize: '13px',
+      color: '#d0dcfa'
+    }).setOrigin(0.5);
+
+    this.load.on('progress', (val) => {
+      progressFill.width = (barW - 6) * val;
+      statusText.setText(`ĐANG TẢI TÀI NGUYÊN... ${Math.floor(val * 100)}%`);
+    });
+
+    this.load.on('complete', () => {
+      statusText.setText('KHỞI TẠO XONG!');
+    });
+
+    // Load Title Screen Background & Fiery Logo
+    this.load.image('title_bg', 'assets/title_bg.jpg');
+    this.load.image('title_logo', 'assets/extracted/title_logo.png');
+
+    // Load full sheets for UI & Parallax
+    this.load.image('asset_map', 'assets/map.png');
+    this.load.image('asset_ui_menu', 'assets/ui_menu.png');
+    this.load.image('asset_ui_hud', 'assets/ui_hud.png');
+    this.load.image('asset_ui_char', 'assets/ui_char.png');
+    this.load.image('asset_ui_npc', 'assets/ui_npc.png');
+    this.load.image('asset_ui_notif', 'assets/ui_notif.png');
+    this.load.image('asset_ui_quiz', 'assets/ui_quiz.png');
+
+    // Load transparent extracted sprites (Player, Monsters, VFX, Props)
+    for (let i = 0; i < 6; i++) {
+      this.load.image(`player_idle_${i}`, `assets/extracted/player_idle_${i}.png`);
+      this.load.image(`player_run_${i}`, `assets/extracted/player_run_${i}.png`);
+    }
+    for (let i = 0; i < 4; i++) {
+      this.load.image(`player_attack_${i}`, `assets/extracted/player_attack_${i}.png`);
+    }
+    this.load.image('player_hurt', 'assets/extracted/player_hurt.png');
+    this.load.image('player_dead', 'assets/extracted/player_dead.png');
+
+    // Monsters
+    const mons = ['slime', 'mushroom', 'spider', 'bat', 'panther', 'orc_axe', 'orc_enrage', 'orc_leader', 'boss_malakar', 'boss_malakar_p2', 'malakar_p1', 'malakar_p2'];
+    mons.forEach(m => this.load.image(`mon_${m}`, `assets/extracted/mon_${m}.png`));
+
+    // Boss VFX
+    this.load.image('boss_dark_slash', 'assets/extracted/boss_dark_slash.png');
+    this.load.image('boss_abyssal_spike', 'assets/extracted/boss_abyssal_spike.png');
+    this.load.image('boss_shadow_shield', 'assets/extracted/boss_shadow_shield.png');
+
+    // Combat VFX
+    ['slash', 'crit', 'fire', 'lightning', 'poison'].forEach(v => {
+      this.load.image(`vfx_${v}`, `assets/extracted/vfx_${v}.png`);
+    });
+
+    // Map Props
+    ['tile_grass', 'prop_chest', 'prop_barrel', 'prop_torch', 'prop_sign', 'prop_cave', 'prop_spikes'].forEach(p => {
+      this.load.image(p, `assets/extracted/${p}.png`);
+    });
+  }
+
+  create() {
+    // Slicing sub-frames for Parallax Mountains & Forest from asset_map
+    if (this.textures.exists('asset_map')) {
+      const tex = this.textures.get('asset_map');
+      if (tex && !tex.has('bg_mountains')) tex.add('bg_mountains', 0, 1376, 0, 1376, 600);
+      if (tex && !tex.has('bg_forest')) tex.add('bg_forest', 0, 0, 0, 1376, 600);
+    }
+
+    // Build Player Animations using transparent frames
+    if (!this.anims.exists('anim_player_idle')) {
+      this.anims.create({
+        key: 'anim_player_idle',
+        frames: [0, 1, 2, 3, 4, 5].map(i => ({ key: `player_idle_${i}` })),
+        frameRate: 6,
+        repeat: -1
+      });
+    }
+
+    if (!this.anims.exists('anim_player_run')) {
+      this.anims.create({
+        key: 'anim_player_run',
+        frames: [0, 1, 2, 3, 4, 5].map(i => ({ key: `player_run_${i}` })),
+        frameRate: 10,
+        repeat: -1
+      });
+    }
+
+    if (!this.anims.exists('anim_player_attack')) {
+      this.anims.create({
+        key: 'anim_player_attack',
+        frames: [0, 1, 2, 3].map(i => ({ key: `player_attack_${i}` })),
+        frameRate: 12,
+        repeat: 0
+      });
+    }
+
+    this.cameras.main.fadeOut(350, 0, 0, 0);
+    this.time.delayedCall(400, () => {
+      this.scene.start('MenuScene');
+    });
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 4. MENU SCENE (GIỐNG GIAO DIỆN 2.PNG 100%)
+// ----------------------------------------------------------------------------
+class MenuScene extends Phaser.Scene {
+  constructor() {
+    super('MenuScene');
+  }
+
+  create() {
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+
+    // Atmospheric 16:9 Dark Fantasy Landscape Title Background
+    if (this.textures.exists('title_bg')) {
+      const bg = this.add.image(w / 2, h / 2, 'title_bg');
+      bg.setDisplaySize(w, h);
+      // Subtle dark vignette overlay for optimal contrast and elegance
+      this.add.rectangle(w / 2, h / 2, w, h, 0x070314, 0.42);
+    } else {
+      this.add.rectangle(w / 2, h / 2, w, h, 0x0c071d);
+    }
+
+    // Floating glowing embers & ash sparks
+    for (let i = 0; i < 45; i++) {
+      const px = Phaser.Math.Between(0, w);
+      const py = Phaser.Math.Between(h / 3, h);
+      const size = Phaser.Math.Between(1.5, 3.5);
+      const emberColor = Phaser.Math.RND.pick([0xff4500, 0xff8c00, 0xffd700, 0xff2200]);
+      const ember = this.add.circle(px, py, size, emberColor, Phaser.Math.FloatBetween(0.6, 0.95));
+      this.tweens.add({
+        targets: ember,
+        y: py - Phaser.Math.Between(100, 300),
+        x: px + Phaser.Math.Between(-70, 70),
+        alpha: 0,
+        duration: Phaser.Math.Between(2600, 5200),
+        repeat: -1,
+        delay: Phaser.Math.Between(0, 3000)
+      });
+    }
+
+    // Authentic Fiery Title Logo & Subtitle
+    const titleContainer = this.add.container(w / 2, 110);
+
+    if (this.textures.exists('title_logo')) {
+      const logo = this.add.image(0, 0, 'title_logo');
+      logo.setScale(0.68);
+      titleContainer.add(logo);
+    } else {
+      const titleText = this.add.text(0, -10, 'HẠT GIỐNG TRO TÀN', {
+        fontFamily: '"Be Vietnam Pro", sans-serif',
+        fontWeight: '900',
+        fontSize: '36px',
+        color: '#ffd700',
+        stroke: '#000000',
+        strokeThickness: 6
+      }).setOrigin(0.5);
+      titleContainer.add(titleText);
+    }
+
+    const subPill = this.add.rectangle(0, 118, 540, 32, 0x09061c, 0.82);
+    subPill.setStrokeStyle(1.5, 0x4a6fa5);
+    const subText = this.add.text(0, 118, '⚔ ĐẠI SỐ VECTƠ – HÀNH TRÌNH TRI THỨC ⚔', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '13.5px',
+      color: '#00e5ff',
+      letterSpacing: 1
+    }).setOrigin(0.5);
+    titleContainer.add([subPill, subText]);
+
+    this.tweens.add({
+      targets: titleContainer,
+      scale: 1.02,
+      y: 106,
+      duration: 1600,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    // Buttons
+    const btnStartY = 330;
+    const btnGap = 72;
+
+    this.createWoodButton(w / 2, btnStartY, 'CHƠI MỚI (SPACE / ENTER)', () => this.startGame());
+    this.createWoodButton(w / 2, btnStartY + btnGap, 'HƯỚNG DẪN ĐIỀU KHIỂN', () => this.showGuideModal());
+    this.soundBtn = this.createWoodButton(w / 2, btnStartY + btnGap * 2, 'ÂM THANH: BẬT / TẮT', () => {
+      const isMuted = audioSynth.toggleMute();
+      this.soundBtn.label.setText(isMuted ? 'ÂM THANH: [ĐÃ TẮT]' : 'ÂM THANH: [ĐANG BẬT]');
+    });
+
+    // Hero Preview with subtle ground shadow
+    if (this.textures.exists('player_idle_0')) {
+      const shadow = this.add.ellipse(w / 2 - 320, 500, 120, 24, 0x000000, 0.55);
+      const hero = this.add.sprite(w / 2 - 320, 435, 'player_idle_0');
+      hero.setScale(0.85);
+      if (this.anims.exists('anim_player_idle')) hero.play('anim_player_idle');
+
+      const heroTagBg = this.add.rectangle(w / 2 - 320, 345, 140, 26, 0x0c1228, 0.85);
+      heroTagBg.setStrokeStyle(1, 0x4a6fa5);
+      this.add.text(w / 2 - 320, 345, 'KAEL • HIỆP SĨ', {
+        fontFamily: '"Be Vietnam Pro", sans-serif',
+        fontWeight: '800',
+        fontSize: '11px',
+        color: '#ffd700'
+      }).setOrigin(0.5);
+    }
+
+    this.input.keyboard.on('keydown-SPACE', () => this.startGame());
+    this.input.keyboard.on('keydown-ENTER', () => this.startGame());
+
+    this.add.text(w / 2, h - 25, '© 2026 Hạt Giống Tro Tàn • Sẵn sàng triển khai 100% trên GitHub Pages', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '500',
+      fontSize: '12px',
+      color: '#8b9bb4'
+    }).setOrigin(0.5);
+
+    this.cameras.main.fadeIn(400, 0, 0, 0);
+  }
+
+  startGame() {
+    if (this.starting) return;
+    this.starting = true;
+    audioSynth.playClick();
+    audioSynth.startBGM();
+    this.cameras.main.fadeOut(350, 0, 0, 0);
+    this.time.delayedCall(400, () => {
+      this.scene.start('GameScene');
+    });
+  }
+
+  createWoodButton(x, y, text, onClick) {
+    const btnW = 440;
+    const btnH = 52;
+    const bg = this.add.rectangle(x, y, btnW, btnH, 0x141a2e, 0.94);
+    bg.setStrokeStyle(2, 0x4a6fa5);
+
+    const label = this.add.text(x, y, text, {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '700',
+      fontSize: '13px',
+      color: '#ffffff',
+      letterSpacing: 0.5
+    }).setOrigin(0.5);
+
+    bg.setInteractive({ useHandCursor: true });
+    label.setInteractive({ useHandCursor: true });
+
+    const swordIcon = this.add.text(x - btnW / 2 + 25, y, '⚔️', { fontSize: '16px' }).setOrigin(0.5).setVisible(false);
+
+    const hoverOn = () => {
+      bg.fillColor = 0x364166;
+      bg.setStrokeStyle(3, 0xffd700);
+      label.setColor('#ffd700');
+      swordIcon.setVisible(true);
+      audioSynth.playClick();
+    };
+
+    const hoverOff = () => {
+      bg.fillColor = 0x1f2438;
+      bg.setStrokeStyle(2, 0x4a6fa5);
+      label.setColor('#ffffff');
+      swordIcon.setVisible(false);
+    };
+
+    bg.on('pointerover', hoverOn);
+    label.on('pointerover', hoverOn);
+    bg.on('pointerout', hoverOff);
+    label.on('pointerout', hoverOff);
+
+    bg.on('pointerdown', onClick);
+    label.on('pointerdown', onClick);
+
+    return { bg, label };
+  }
+
+  showGuideModal() {
+    audioSynth.playClick();
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+
+    const modal = this.add.container(0, 0);
+    const dimmer = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.75).setInteractive();
+
+    const panel = this.add.rectangle(w / 2, h / 2, 740, 480, 0x121729, 0.98);
+    panel.setStrokeStyle(3, 0x00e5ff);
+
+    const title = this.add.text(w / 2, h / 2 - 205, '📖 HƯỚNG DẪN ĐIỀU KHIỂN & CHIẾN ĐẤU', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '17px',
+      color: '#ffd700'
+    }).setOrigin(0.5);
+
+    const divider = this.add.rectangle(w / 2, h / 2 - 180, 680, 2, 0x4a6fa5, 0.6);
+
+    const lines = [
+      '1. DI CHUYỂN: Phím [A]/[D] hoặc Mũi tên Trái / Phải.',
+      '2. NHẢY CAO: Phím [W], [Phím Cách - SPACE] hoặc Mũi tên Lên.',
+      '3. TƯƠNG TÁC: Phím [E] để trò chuyện Pháp Sư hoặc Mở Cửa Hàng Arthur.',
+      '4. TÚI ĐỒ & CHỈ SỐ: Phím [I] hoặc [C] để mở Bảng Quản Lý Nhân Vật.',
+      '5. CHIẾN ĐẤU VECTƠ: Tiếp cận quái vật để kích hoạt Đấu Trường Giải Đố.',
+      '   - TRẢ LỜI ĐÚNG: Kael tung đòn chém chí mạng diệt quái, nhận Vàng & EXP!',
+      '   - TRẢ LỜI SAI: Quái phản đòn sát thương, Kael mất HP & Trái Tim.',
+      '6. THỬ THÁCH 10 CÂU HỎI: Vượt qua 4 Quái nhỏ -> 4 Quái vừa -> Trùm Malakar!'
+    ];
+
+    const body = this.add.text(w / 2 - 330, h / 2 - 160, lines.join('\n\n'), {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '500',
+      fontSize: '13px',
+      color: '#e4ecf7',
+      lineSpacing: 8,
+      align: 'left'
+    }).setOrigin(0, 0);
+
+    const closeBtn = this.add.rectangle(w / 2, h / 2 + 205, 180, 40, 0x2b3552);
+    closeBtn.setStrokeStyle(2, 0xffd700);
+    const closeTxt = this.add.text(w / 2, h / 2 + 205, 'ĐÃ HIỂU [X]', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '13px',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+
+    closeBtn.setInteractive({ useHandCursor: true });
+    closeBtn.on('pointerdown', () => {
+      audioSynth.playClick();
+      modal.destroy();
+    });
+
+    modal.add([dimmer, panel, title, divider, body, closeBtn, closeTxt]);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 5. GAME SCENE (EXPLORATION & PLATFORMER)
+// ----------------------------------------------------------------------------
+class GameScene extends Phaser.Scene {
+  constructor() {
+    super('GameScene');
+  }
+
+  init(data) {
+    this.battleReturnData = data || {};
+    this.worldWidth = 7200;
+    this.worldHeight = 720;
+    this.groundY = 620;
+    this.isDialogueOpen = false;
+    this.isShopOpen = false;
+    this.isInventoryOpen = false;
+    this.isInCombat = false;
+  }
+
+  create() {
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+
+    this.physics.world.setBounds(0, 0, this.worldWidth, this.worldHeight);
+
+    // 1. Parallax Mountains & Forest
+    this.createParallax();
+
+    // 2. Terrain & Props
+    this.createTerrain();
+
+    // 3. Player Character (Kael)
+    this.createPlayer();
+
+    // 4. NPCs (Wizard Eldrin & Blacksmith Arthur)
+    this.createNPCs();
+
+    // 5. 10 Monsters Along Road
+    this.createMonsters();
+
+    // 6. Camera Follow
+    this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
+    this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+
+    // 7. Inputs
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+    this.keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+    this.keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+    this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this.keyI = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.I);
+    this.keyC = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
+
+    // 8. In-Game HUD (Giống giao diện 1.png)
+    this.createHUD();
+
+    // 9. Intro Banner
+    this.showChapterBanner("RỪNG HOANG DÃ – CHƯƠNG 1");
+
+    this.cameras.main.fadeIn(400, 0, 0, 0);
+
+    const invBtn = document.getElementById('inventory-btn');
+    if (invBtn) invBtn.onclick = () => this.toggleInventoryModal();
+
+    // Reset combat flag and restore touch controls when scene resumes
+    this.events.on('wake', () => { 
+      this.isInCombat = false; 
+      if (window.showVirtualControls) window.showVirtualControls();
+    });
+    this.events.on('resume', () => { 
+      this.isInCombat = false; 
+      if (window.showVirtualControls) window.showVirtualControls();
+    });
+
+    if (window.showVirtualControls) window.showVirtualControls();
+  }
+
+  createParallax() {
+    for (let x = 0; x < this.worldWidth; x += 1370) {
+      if (this.textures.exists('asset_map')) {
+        const bgM = this.add.image(x, 220, 'asset_map', 'bg_mountains').setOrigin(0, 0.5).setScrollFactor(0.2);
+        bgM.setDisplaySize(1376, 500);
+
+        const bgF = this.add.image(x, 390, 'asset_map', 'bg_forest').setOrigin(0, 0.5).setScrollFactor(0.5);
+        bgF.setDisplaySize(1376, 450);
+        bgF.setAlpha(0.75);
+      }
+    }
+  }
+
+  createTerrain() {
+    this.platforms = this.physics.add.staticGroup();
+
+    // Continuous Ground
+    for (let x = 0; x < this.worldWidth; x += 250) {
+      let ground;
+      if (this.textures.exists('tile_grass')) {
+        ground = this.platforms.create(x + 125, this.groundY + 50, 'tile_grass');
+        ground.setDisplaySize(250, 120);
+      } else {
+        const r = this.add.rectangle(x + 125, this.groundY + 50, 250, 120, 0x3d2817);
+        ground = this.platforms.add(r);
+      }
+      ground.refreshBody();
+    }
+
+    // Elevated Platforms
+    const platformLocations = [
+      { x: 1050, y: 480, w: 220 },
+      { x: 1650, y: 450, w: 250 },
+      { x: 2250, y: 460, w: 220 },
+      { x: 2850, y: 440, w: 260 },
+      { x: 3500, y: 460, w: 220 },
+      { x: 4200, y: 450, w: 260 },
+      { x: 4850, y: 440, w: 240 },
+      { x: 5500, y: 450, w: 320 }
+    ];
+
+    platformLocations.forEach(loc => {
+      let p;
+      if (this.textures.exists('tile_grass')) {
+        p = this.platforms.create(loc.x, loc.y, 'tile_grass');
+        p.setDisplaySize(loc.w, 35);
+      } else {
+        const r = this.add.rectangle(loc.x, loc.y, loc.w, 35, 0x4a7c29);
+        p = this.platforms.add(r);
+      }
+      p.refreshBody();
+    });
+
+    // Decorative Props from extracted assets
+    if (this.textures.exists('prop_cave')) {
+      this.add.image(6650, this.groundY - 100, 'prop_cave').setDisplaySize(380, 260);
+    }
+    if (this.textures.exists('prop_chest')) {
+      this.add.image(1050, 435, 'prop_chest').setDisplaySize(55, 45);
+      this.add.image(2850, 395, 'prop_chest').setDisplaySize(55, 45);
+    }
+    if (this.textures.exists('prop_barrel')) {
+      this.add.image(580, this.groundY - 30, 'prop_barrel').setDisplaySize(45, 45);
+      this.add.image(1380, this.groundY - 30, 'prop_barrel').setDisplaySize(45, 45);
+    }
+    if (this.textures.exists('prop_torch')) {
+      this.add.image(400, this.groundY - 45, 'prop_torch').setDisplaySize(35, 45);
+      this.add.image(1200, this.groundY - 45, 'prop_torch').setDisplaySize(35, 45);
+    }
+    if (this.textures.exists('prop_sign')) {
+      this.add.image(850, this.groundY - 35, 'prop_sign').setDisplaySize(45, 45);
+    }
+  }
+
+  createPlayer() {
+    const startX = (this.battleReturnData && this.battleReturnData.playerX) ? this.battleReturnData.playerX : 140;
+    const startY = this.groundY - 70;
+
+    this.player = this.physics.add.sprite(startX, startY, 'player_idle_0');
+    this.player.setCollideWorldBounds(true);
+    this.player.setScale(0.5);
+    this.player.body.setSize(120, 200);
+    this.player.body.setOffset(75, 50);
+
+    if (this.anims.exists('anim_player_idle')) {
+      this.player.play('anim_player_idle');
+    }
+
+    this.physics.add.collider(this.player, this.platforms);
+  }
+
+  createNPCs() {
+    // 1. Wizard Eldrin (Quest Giver)
+    const wizard = this.add.container(260, this.groundY - 45);
+    const wBg = this.add.circle(0, 0, 24, 0x6a1b9a);
+    const wHat = this.add.triangle(0, -22, -18, 0, 18, 0, 0, -28, 0x9c27b0);
+    const wIcon = this.add.text(0, -3, '🧙', { fontSize: '24px' }).setOrigin(0.5);
+    const wLabel = this.add.text(0, -42, 'Pháp Sư Eldrin [E]', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '700',
+      fontSize: '10px',
+      color: '#ffd700',
+      backgroundColor: '#111827',
+      padding: { x: 5, y: 3 }
+    }).setOrigin(0.5);
+    wizard.add([wBg, wHat, wIcon, wLabel]);
+    wizard.npcType = 'wizard';
+    this.wizardObj = wizard;
+
+    // 2. Arthur Blacksmith (Shop Keeper)
+    const arthur = this.add.container(480, this.groundY - 45);
+    const aBg = this.add.circle(0, 0, 24, 0xb71c1c);
+    const aIcon = this.add.text(0, -3, '⚒️', { fontSize: '24px' }).setOrigin(0.5);
+    const aLabel = this.add.text(0, -42, 'Cửa Hàng Arthur [E]', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '700',
+      fontSize: '10px',
+      color: '#00e5ff',
+      backgroundColor: '#111827',
+      padding: { x: 5, y: 3 }
+    }).setOrigin(0.5);
+    arthur.add([aBg, aIcon, aLabel]);
+    arthur.npcType = 'arthur';
+    this.arthurObj = arthur;
+  }
+
+  createMonsters() {
+    this.monsters = [];
+    GAME_DATA.monsters.forEach((mData, idx) => {
+      if (window.defeatedMonsters.includes(mData.id)) return;
+
+      let textureKey = 'mon_' + mData.id;
+      if (!this.textures.exists(textureKey)) {
+        if (mData.id === 'malakar_p1') textureKey = 'mon_boss_malakar';
+        else if (mData.id === 'malakar_p2') textureKey = 'mon_boss_malakar_p2';
+        else if (mData.type === 'boss') textureKey = 'mon_boss_malakar';
+        else textureKey = 'mon_slime';
+      }
+
+      // Proportional scaling for each monster tier
+      let mScale = 0.58;
+      if (mData.type === 'boss') mScale = 0.8;
+      else if (mData.type === 'medium') mScale = 0.55;
+
+      const mon = this.physics.add.sprite(mData.x, this.groundY - 10, textureKey);
+      mon.setOrigin(0.5, 1);
+      mon.setScale(mScale);
+      mon.setDepth(10);
+      mon.setCollideWorldBounds(true);
+      this.physics.add.collider(mon, this.platforms);
+
+      // Facing orientation towards approaching player
+      if (mData.id === 'panther' || mData.id === 'mushroom') {
+        mon.setFlipX(true);
+      }
+
+      const monH = mon.displayHeight || 90;
+      const tagColor = mData.type === 'boss' ? '#ff3366' : (mData.type === 'medium' ? '#ffaa00' : '#44ff88');
+      const nameTag = this.add.text(mData.x, this.groundY - monH - 25, `${idx + 1}. ${mData.name}`, {
+        fontFamily: '"Be Vietnam Pro", sans-serif',
+        fontWeight: '700',
+        fontSize: '10px',
+        color: tagColor,
+        backgroundColor: '#0a0a16',
+        padding: { x: 5, y: 3 }
+      }).setOrigin(0.5).setDepth(15);
+
+      const questIcon = this.add.text(mData.x, this.groundY - monH - 48, '⚔️', { fontSize: '15px' }).setOrigin(0.5).setDepth(15);
+      this.tweens.add({
+        targets: questIcon,
+        y: this.groundY - monH - 58,
+        duration: 700,
+        yoyo: true,
+        repeat: -1
+      });
+
+      mon.dataRef = mData;
+      mon.nameTag = nameTag;
+      mon.questIcon = questIcon;
+
+      mon.setInteractive({ useHandCursor: true });
+      mon.on('pointerdown', () => {
+        if (!this.isInCombat) this.startCombat(mon);
+      });
+      questIcon.setInteractive({ useHandCursor: true });
+      questIcon.on('pointerdown', () => {
+        if (!this.isInCombat) this.startCombat(mon);
+      });
+
+      this.tweens.add({
+        targets: mon,
+        x: mData.x + 35,
+        duration: 2200,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+
+      this.monsters.push(mon);
+    });
+  }
+
+  handleDefeatedMonster(monsterId) {
+    this.isInCombat = false;
+
+    if (!window.defeatedMonsters.includes(monsterId)) {
+      window.defeatedMonsters.push(monsterId);
+    }
+
+    const monIdx = this.monsters.findIndex(m => m.dataRef.id === monsterId);
+    if (monIdx !== -1) {
+      const mon = this.monsters[monIdx];
+      if (mon.nameTag) mon.nameTag.destroy();
+      if (mon.questIcon) mon.questIcon.destroy();
+      mon.destroy();
+      this.monsters.splice(monIdx, 1);
+    }
+
+    this.showChapterBanner(`ĐÃ DIỆT QUÁI THÀNH CÔNG!`);
+  }
+
+  update() {
+    if (this.isDialogueOpen || this.isShopOpen || this.isInventoryOpen) {
+      this.player.setVelocityX(0);
+      return;
+    }
+
+    const speed = GAME_DATA.player.speed;
+    const isMovingLeft = this.cursors.left.isDown || this.keyA.isDown || (window.touchControls && window.touchControls.left);
+    const isMovingRight = this.cursors.right.isDown || this.keyD.isDown || (window.touchControls && window.touchControls.right);
+    const isJumping = this.cursors.up.isDown || this.keyW.isDown || this.keySpace.isDown || (window.touchControls && window.touchControls.jump);
+
+    if (isMovingLeft) {
+      this.player.setVelocityX(-speed);
+      this.player.setFlipX(true);
+      if (this.player.body.touching.down && this.anims.exists('anim_player_run') && this.player.anims.currentAnim?.key !== 'anim_player_run') {
+        this.player.play('anim_player_run');
+      }
+    } else if (isMovingRight) {
+      this.player.setVelocityX(speed);
+      this.player.setFlipX(false);
+      if (this.player.body.touching.down && this.anims.exists('anim_player_run') && this.player.anims.currentAnim?.key !== 'anim_player_run') {
+        this.player.play('anim_player_run');
+      }
+    } else {
+      this.player.setVelocityX(0);
+      if (this.player.body.touching.down && this.anims.exists('anim_player_idle') && this.player.anims.currentAnim?.key !== 'anim_player_idle') {
+        this.player.play('anim_player_idle');
+      }
+    }
+
+    if (isJumping && this.player.body.touching.down) {
+      this.player.setVelocityY(-430);
+      audioSynth.playJump();
+    }
+
+    const isInteract = Phaser.Input.Keyboard.JustDown(this.keyE) || (window.touchControls && window.touchControls.interactJustPressed);
+    if (window.touchControls) window.touchControls.interactJustPressed = false;
+
+    if (isInteract) {
+      const distToWizard = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.wizardObj.x, this.wizardObj.y);
+      const distToArthur = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.arthurObj.x, this.arthurObj.y);
+
+      if (distToWizard < 120) {
+        this.openDialogue(GAME_DATA.dialogues.wizardIntro);
+      } else if (distToArthur < 120) {
+        this.openShop();
+      }
+    }
+
+    if (Phaser.Input.Keyboard.JustDown(this.keyI) || Phaser.Input.Keyboard.JustDown(this.keyC)) {
+      this.toggleInventoryModal();
+    }
+
+    this.monsters.forEach(m => {
+      if (!m.active) return;
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, m.x, m.y);
+      if (dist < 110 && !this.isInCombat) {
+        this.startCombat(m);
+      }
+    });
+
+    this.monsters.forEach(m => {
+      if (m.nameTag) {
+        m.nameTag.x = m.x;
+      }
+      if (m.questIcon) {
+        m.questIcon.x = m.x;
+      }
+    });
+
+    this.updateHUD();
+  }
+
+  startCombat(monsterSprite) {
+    if (this.isInCombat) return;
+    this.isInCombat = true;
+    if (window.hideVirtualControls) window.hideVirtualControls();
+    audioSynth.playMonsterAttack();
+    this.cameras.main.flash(300, 255, 255, 255);
+    this.time.delayedCall(200, () => {
+      this.scene.pause();
+      this.scene.launch('CombatScene', {
+        monsterData: monsterSprite.dataRef,
+        playerX: this.player.x,
+        question: GAME_DATA.questions[monsterSprite.dataRef.questionIndex]
+      });
+    });
+  }
+
+  // --------------------------------------------------------------------------
+  // IN-GAME HUD (GIỐNG GIAO DIỆN 1.PNG 100%)
+  // --------------------------------------------------------------------------
+  createHUD() {
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+    this.hudContainer = this.add.container(0, 0).setScrollFactor(0);
+
+    // 1. TOP-LEFT: AVATAR & SURVIVAL BARS
+    const avatarBox = this.add.rectangle(148, 62, 272, 100, 0x080d1e, 0.95);
+    avatarBox.setStrokeStyle(2, 0x4a6fa5);
+
+    // Portrait frame
+    const portrait = this.add.rectangle(42, 62, 60, 60, 0x0c1a3a);
+    portrait.setStrokeStyle(2, 0xffd700);
+
+    // Level Badge
+    const lvBadge = this.add.rectangle(42, 95, 34, 16, 0xffd700);
+    const lvText = this.add.text(42, 95, `LV.${GAME_DATA.player.level}`, {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '9.5px',
+      color: '#000000'
+    }).setOrigin(0.5);
+
+    // Small Kael head avatar inside frame
+    const kaelAvatar = this.textures.exists('player_idle_0')
+      ? this.add.sprite(42, 60, 'player_idle_0').setScale(0.28)
+      : this.add.text(42, 60, '⚔️', { fontSize: '26px' }).setOrigin(0.5);
+
+    // Name & Class label
+    const nameLabel = this.add.text(82, 22, 'KAEL – HIỆP SĨ', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '11px',
+      color: '#a0c8ff'
+    });
+
+    this.heartText = this.add.text(82, 37, '\u2764\ufe0f\u2764\ufe0f\u2764\ufe0f', { fontSize: '13px' });
+
+    // HP Bar
+    const hpBarBg = this.add.rectangle(198, 55, 196, 13, 0x330000);
+    hpBarBg.setStrokeStyle(1, 0x660000);
+    this.hpBarFill = this.add.rectangle(102, 55, 192, 11, 0x22dd55).setOrigin(0, 0.5);
+    this.hpLabel = this.add.text(198, 55, '100/100', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '9px',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+    const hpTag = this.add.text(78, 48, 'HP', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '900',
+      fontSize: '9px',
+      color: '#ff4466'
+    });
+
+    // MP Bar
+    const mpBarBg = this.add.rectangle(198, 73, 196, 12, 0x001133);
+    mpBarBg.setStrokeStyle(1, 0x002266);
+    this.mpBarFill = this.add.rectangle(102, 73, 192, 10, 0x0099ff).setOrigin(0, 0.5);
+    const mpTag = this.add.text(78, 66, 'MP', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '900',
+      fontSize: '9px',
+      color: '#66aaff'
+    });
+
+    // EXP Bar
+    const expBarBg = this.add.rectangle(198, 90, 196, 9, 0x1a1200);
+    expBarBg.setStrokeStyle(1, 0x333300);
+    this.expBarFill = this.add.rectangle(102, 90, 192, 7, 0xffd700).setOrigin(0, 0.5);
+    const expTag = this.add.text(78, 84, 'EXP', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '900',
+      fontSize: '8px',
+      color: '#ddaa00'
+    });
+
+    // 2. TOP-RIGHT: MINIMAP RADAR
+    const miniX = w - 85;
+    const miniY = 80;
+
+    // Minimap outer ring glow
+    const miniGlow = this.add.circle(miniX, miniY, 60, 0x0a1030, 0.9);
+    miniGlow.setStrokeStyle(3, 0x2244aa);
+    const miniFrame = this.add.circle(miniX, miniY, 54, 0x0d1826, 0.95);
+    miniFrame.setStrokeStyle(2, 0x4a80cc);
+
+    const compassN = this.add.text(miniX, miniY - 52, 'N', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '900',
+      fontSize: '11px',
+      color: '#ffd700'
+    }).setOrigin(0.5);
+
+    this.radarGfx = this.add.graphics();
+
+    // 3. RESOURCE COUNTERS (TOP-RIGHT below minimap)
+    const resBox = this.add.rectangle(w - 85, 175, 160, 68, 0x080d1e, 0.95);
+    resBox.setStrokeStyle(2, 0x4a6fa5);
+
+    this.goldTxt = this.add.text(w - 160, 148, '', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '700',
+      fontSize: '11.5px',
+      color: '#ffd700',
+      stroke: '#000000',
+      strokeThickness: 3
+    });
+    this.gemTxt = this.add.text(w - 160, 168, '', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '700',
+      fontSize: '11.5px',
+      color: '#00e5ff',
+      stroke: '#000000',
+      strokeThickness: 3
+    });
+    this.keyTxt = this.add.text(w - 160, 188, '', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '700',
+      fontSize: '11.5px',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 3
+    });
+
+    // 4. BOTTOM HOTBAR (SLOTS 1-5)
+    const hotbarY = h - 30;
+    const hotbarBox = this.add.rectangle(w / 2, hotbarY, 680, 46, 0x080e20, 0.96);
+    hotbarBox.setStrokeStyle(2, 0x3a5090);
+
+    const slots = [
+      { label: '[1]', icon: '⚔️', name: 'Kiếm', action: null },
+      { label: '[2]', icon: '🧪', name: 'Máu', action: 'hp' },
+      { label: '[3]', icon: '🧪', name: 'Mana', action: 'mp' },
+      { label: '[4]', icon: '📜', name: 'Sách', action: null },
+      { label: '[5]', icon: '⚡', name: 'Skill', action: null }
+    ];
+
+    const hotbarItems = [];
+    this.slotObjs = [];
+    slots.forEach((s, idx) => {
+      const sx = w / 2 - 270 + idx * 135;
+
+      // Slot background
+      const slotBg = this.add.rectangle(sx, hotbarY, 120, 38, 0x0f1830);
+      slotBg.setStrokeStyle(1, 0x2a3a60);
+
+      const slotTxt = this.add.text(sx, hotbarY, `${s.icon} ${s.name} ${s.label}`, {
+        fontFamily: '"Be Vietnam Pro", sans-serif',
+        fontWeight: '700',
+        fontSize: '11px',
+        color: '#ccddff',
+        stroke: '#000000',
+        strokeThickness: 3
+      }).setOrigin(0.5);
+
+      slotBg.setInteractive({ useHandCursor: true });
+      slotBg.on('pointerover', () => {
+        slotBg.fillColor = 0x1e2d50;
+        slotBg.setStrokeStyle(2, 0x6699ff);
+        slotTxt.setColor('#ffd700');
+      });
+      slotBg.on('pointerout', () => {
+        slotBg.fillColor = 0x0f1830;
+        slotBg.setStrokeStyle(1, 0x2a3a60);
+        slotTxt.setColor('#ccddff');
+      });
+      slotBg.on('pointerdown', () => {
+        if (s.action === 'hp') this.drinkPotion('hp');
+        else if (s.action === 'mp') this.drinkPotion('mp');
+        else audioSynth.playClick();
+      });
+
+      hotbarItems.push(slotBg, slotTxt);
+      this.slotObjs.push({ bg: slotBg, label: slotTxt });
+    });
+
+    this.hudContainer.add([
+      avatarBox, portrait, lvBadge, lvText, kaelAvatar,
+      nameLabel, this.heartText,
+      hpBarBg, this.hpBarFill, this.hpLabel, hpTag,
+      mpBarBg, this.mpBarFill, mpTag,
+      expBarBg, this.expBarFill, expTag,
+      miniGlow, miniFrame, compassN, this.radarGfx,
+      resBox, this.goldTxt, this.gemTxt, this.keyTxt,
+      hotbarBox, ...hotbarItems
+    ]);
+  }
+
+  updateHUD() {
+    const p = GAME_DATA.player;
+    const hpRatio = Math.max(0, p.hp / p.maxHp);
+    this.hpBarFill.width = 192 * hpRatio;
+    // Color shift: green → yellow → red
+    if (hpRatio > 0.5) this.hpBarFill.fillColor = 0x22dd55;
+    else if (hpRatio > 0.25) this.hpBarFill.fillColor = 0xffcc00;
+    else this.hpBarFill.fillColor = 0xff2244;
+    this.hpLabel.setText(`${Math.max(0, Math.floor(p.hp))}/${p.maxHp}`);
+
+    let hStr = '';
+    for (let i = 0; i < p.hearts; i++) hStr += '❤️';
+    for (let i = p.hearts; i < 3; i++) hStr += '🖤';
+    this.heartText.setText(hStr);
+
+    const mpRatio = Math.max(0, p.mp / p.maxMp);
+    this.mpBarFill.width = 192 * mpRatio;
+
+    const expRatio = Math.max(0, p.exp / p.maxExp);
+    this.expBarFill.width = 192 * expRatio;
+
+    this.goldTxt.setText(`🪙 ${p.gold} VÀNG`);
+    this.gemTxt.setText(`💎 ${p.gems} ĐÁ QUÝ`);
+    this.keyTxt.setText(`🗝️ ${p.keys || 1} KHÓA`);
+
+    // Minimap Radar — draw dots for player + monsters
+    this.radarGfx.clear();
+    const miniX = this.cameras.main.width - 85;
+    const miniY = 80;
+    const radius = 45;
+
+    const pNorm = this.player.x / this.worldWidth;
+    const pRadarX = miniX - radius + (pNorm * radius * 2);
+    // Player dot — bright green with glow
+    this.radarGfx.fillStyle(0x00ff99, 1);
+    this.radarGfx.fillCircle(pRadarX, miniY, 5);
+    this.radarGfx.fillStyle(0xffffff, 0.4);
+    this.radarGfx.fillCircle(pRadarX, miniY - 1, 2);
+
+    this.monsters.forEach(m => {
+      if (!m.active) return;
+      const mNorm = m.x / this.worldWidth;
+      const mRadarX = miniX - radius + (mNorm * radius * 2);
+      if (m.dataRef.type === 'boss') {
+        this.radarGfx.fillStyle(0xff0033, 1);
+        this.radarGfx.fillCircle(mRadarX, miniY, 5);
+      } else {
+        this.radarGfx.fillStyle(0xffaa00, 1);
+        this.radarGfx.fillCircle(mRadarX, miniY, 4);
+      }
+    });
+  }
+
+  drinkPotion(type) {
+    if (type === 'hp') {
+      if (GAME_DATA.player.hp >= GAME_DATA.player.maxHp) return;
+      GAME_DATA.player.hp = Math.min(GAME_DATA.player.maxHp, GAME_DATA.player.hp + 40);
+      audioSynth.playCorrect();
+      this.showFloatingNotice(this.player.x, this.player.y - 70, '+40 HP', '#00ff88');
+    } else {
+      if (GAME_DATA.player.mp >= GAME_DATA.player.maxMp) return;
+      GAME_DATA.player.mp = Math.min(GAME_DATA.player.maxMp, GAME_DATA.player.mp + 30);
+      audioSynth.playCorrect();
+      this.showFloatingNotice(this.player.x, this.player.y - 70, '+30 MP', '#00e5ff');
+    }
+    this.updateHUD();
+  }
+
+  showFloatingNotice(x, y, text, color) {
+    const t = this.add.text(x, y, text, {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '14px',
+      color: color,
+      stroke: '#000000',
+      strokeThickness: 4
+    }).setOrigin(0.5);
+
+    this.tweens.add({
+      targets: t,
+      y: y - 45,
+      alpha: 0,
+      duration: 900,
+      onComplete: () => t.destroy()
+    });
+  }
+
+  showChapterBanner(text) {
+    const w = this.cameras.main.width;
+    const banner = this.add.container(w / 2, 170).setScrollFactor(0);
+    const bg = this.add.rectangle(0, 0, 560, 52, 0x0b0e1a, 0.9);
+    bg.setStrokeStyle(3, 0xffd700);
+
+    const txt = this.add.text(0, 0, text, {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '15px',
+      color: '#ffd700',
+      letterSpacing: 1
+    }).setOrigin(0.5);
+
+    banner.add([bg, txt]);
+    banner.setScale(0);
+
+    this.tweens.add({
+      targets: banner,
+      scale: 1,
+      duration: 350,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        this.time.delayedCall(2200, () => {
+          this.tweens.add({
+            targets: banner,
+            alpha: 0,
+            y: 120,
+            duration: 400,
+            onComplete: () => banner.destroy()
+          });
+        });
+      }
+    });
+  }
+
+  openDialogue(dialogueLines) {
+    this.isDialogueOpen = true;
+    audioSynth.playClick();
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+
+    const container = this.add.container(0, 0).setScrollFactor(0);
+    const bg = this.add.rectangle(w / 2, h - 110, w - 80, 160, 0x101526, 0.98);
+    bg.setStrokeStyle(3, 0xffd700);
+
+    const pFrame = this.add.rectangle(120, h - 110, 95, 95, 0x1f2942);
+    pFrame.setStrokeStyle(2, 0x4a6fa5);
+    const pIcon = this.add.text(120, h - 110, '🧙', { fontSize: '42px' }).setOrigin(0.5);
+
+    let idx = 0;
+    const speaker = this.add.text(190, h - 170, dialogueLines[0].speaker, {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '15px',
+      color: '#ffd700'
+    });
+
+    const body = this.add.text(190, h - 135, dialogueLines[0].text, {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '600',
+      fontSize: '13.5px',
+      color: '#ffffff',
+      wordWrap: { width: w - 300 },
+      lineSpacing: 8
+    });
+
+    const nextTip = this.add.text(w - 260, h - 50, 'NHẤP CHUỘT / [E] ĐỂ TIẾP TỤC ⏩', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '700',
+      fontSize: '12px',
+      color: '#00e5ff'
+    });
+
+    container.add([bg, pFrame, pIcon, speaker, body, nextTip]);
+
+    const advance = () => {
+      audioSynth.playClick();
+      idx++;
+      if (idx < dialogueLines.length) {
+        speaker.setText(dialogueLines[idx].speaker);
+        body.setText(dialogueLines[idx].text);
+      } else {
+        container.destroy();
+        this.isDialogueOpen = false;
+      }
+    };
+
+    bg.setInteractive({ useHandCursor: true });
+    bg.on('pointerdown', advance);
+  }
+
+  openShop() {
+    this.isShopOpen = true;
+    audioSynth.playClick();
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+
+    const shop = this.add.container(0, 0).setScrollFactor(0);
+    const dimmer = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.75).setInteractive();
+
+    const panel = this.add.rectangle(w / 2, h / 2, 780, 460, 0x121729, 0.98);
+    panel.setStrokeStyle(3, 0x00e5ff);
+
+    const title = this.add.text(w / 2, h / 2 - 195, '🏪 CỬA HÀNG THỢ RÈN ARTHUR', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '16px',
+      color: '#ffd700'
+    }).setOrigin(0.5);
+
+    shop.add([dimmer, panel, title]);
+
+    GAME_DATA.shopItems.forEach((item, idx) => {
+      const iy = h / 2 - 120 + idx * 72;
+      const box = this.add.rectangle(w / 2, iy, 700, 58, 0x1c2438);
+      box.setStrokeStyle(1, 0x4a6fa5);
+
+      const itemName = this.add.text(w / 2 - 320, iy - 16, item.name, {
+        fontFamily: '"Be Vietnam Pro", sans-serif',
+        fontWeight: '800',
+        fontSize: '13px',
+        color: '#ffffff'
+      });
+
+      const itemDesc = this.add.text(w / 2 - 320, iy + 8, item.desc, {
+        fontFamily: '"Be Vietnam Pro", sans-serif',
+        fontWeight: '500',
+        fontSize: '11px',
+        color: '#a0aec0'
+      });
+
+      const buyBtn = this.add.rectangle(w / 2 + 250, iy, 140, 36, 0xffaa00);
+      buyBtn.setInteractive({ useHandCursor: true });
+      const buyText = this.add.text(w / 2 + 250, iy, `${item.cost} VÀNG`, {
+        fontFamily: '"Be Vietnam Pro", sans-serif',
+        fontWeight: '800',
+        fontSize: '12px',
+        color: '#000000'
+      }).setOrigin(0.5);
+
+      buyBtn.on('pointerdown', () => {
+        if (GAME_DATA.player.gold >= item.cost) {
+          GAME_DATA.player.gold -= item.cost;
+          audioSynth.playCoin();
+          if (item.effect.hp) GAME_DATA.player.hp = Math.min(GAME_DATA.player.maxHp, GAME_DATA.player.hp + item.effect.hp);
+          if (item.effect.attack) GAME_DATA.player.attack += item.effect.attack;
+          buyText.setText("ĐÃ MUA!");
+          this.time.delayedCall(800, () => buyText.setText(`${item.cost} VÀNG`));
+          this.updateHUD();
+        } else {
+          audioSynth.playWrong();
+          buyText.setText("THIẾU VÀNG!");
+          this.time.delayedCall(800, () => buyText.setText(`${item.cost} VÀNG`));
+        }
+      });
+
+      shop.add([box, itemName, itemDesc, buyBtn, buyText]);
+    });
+
+    const closeBtn = this.add.rectangle(w / 2, h / 2 + 190, 160, 38, 0xb71c1c);
+    closeBtn.setInteractive({ useHandCursor: true });
+    const closeTxt = this.add.text(w / 2, h / 2 + 190, 'ĐÓNG [X]', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '13px',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+
+    closeBtn.on('pointerdown', () => {
+      audioSynth.playClick();
+      shop.destroy();
+      this.isShopOpen = false;
+    });
+
+    shop.add([closeBtn, closeTxt]);
+  }
+
+  toggleInventoryModal() {
+    if (this.isInventoryOpen) {
+      if (this.invContainer) this.invContainer.destroy();
+      this.isInventoryOpen = false;
+      return;
+    }
+
+    this.isInventoryOpen = true;
+    audioSynth.playClick();
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+
+    this.invContainer = this.add.container(0, 0).setScrollFactor(0);
+    const dimmer = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.8).setInteractive();
+
+    const panel = this.add.rectangle(w / 2, h / 2, 840, 520, 0x111628, 0.98);
+    panel.setStrokeStyle(3, 0xffd700);
+
+    const title = this.add.text(w / 2, h / 2 - 225, '⚔️ BẢNG QUẢN LÝ NHÂN VẬT (KAEL) ⚔️', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '16px',
+      color: '#ffd700'
+    }).setOrigin(0.5);
+
+    // Left Half: TÚI ĐỒ & TRANG BỊ
+    const leftCard = this.add.rectangle(w / 2 - 200, h / 2 - 20, 380, 340, 0x1b233a);
+    leftCard.setStrokeStyle(2, 0x4a6fa5);
+
+    const invTitle = this.add.text(w / 2 - 200, h / 2 - 165, '🎒 TÚI ĐỒ (INVENTORY)', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '13px',
+      color: '#00e5ff'
+    }).setOrigin(0.5);
+
+    const eqText = [
+      `• MŨ: ${GAME_DATA.player.equipment.helmet}`,
+      `• GIÁP: ${GAME_DATA.player.equipment.armor}`,
+      `• VŨ KHÍ: ${GAME_DATA.player.equipment.sword}`,
+      `• KHIÊN: ${GAME_DATA.player.equipment.shield}`
+    ];
+    const eqLabel = this.add.text(w / 2 - 370, h / 2 - 130, eqText.join('\n\n'), {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '600',
+      fontSize: '12px',
+      color: '#ffffff',
+      lineSpacing: 6
+    });
+
+    for (let r = 0; r < 2; r++) {
+      for (let c = 0; c < 4; c++) {
+        const slot = this.add.rectangle(w / 2 - 340 + c * 75, h / 2 + 30 + r * 60, 60, 48, 0x2a3552);
+        slot.setStrokeStyle(1, 0x64748b);
+        const item = GAME_DATA.player.inventory[r * 4 + c];
+        if (item) {
+          this.add.text(w / 2 - 340 + c * 75, h / 2 + 25 + r * 60, item.icon, { fontSize: '18px' }).setOrigin(0.5);
+          this.add.text(w / 2 - 340 + c * 75, h / 2 + 45 + r * 60, `x${item.count}`, { fontFamily: '"Be Vietnam Pro", sans-serif', fontWeight: '700', fontSize: '10px', color: '#ffd700' }).setOrigin(0.5);
+        }
+      }
+    }
+
+    // Right Half: CHỈ SỐ & NHIỆM VỤ
+    const rightCard = this.add.rectangle(w / 2 + 200, h / 2 - 20, 380, 340, 0x1b233a);
+    rightCard.setStrokeStyle(2, 0x4a6fa5);
+
+    const statsTitle = this.add.text(w / 2 + 200, h / 2 - 165, '📊 BẢNG CHỈ SỐ & NHIỆM VỤ', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '13px',
+      color: '#ffd700'
+    }).setOrigin(0.5);
+
+    const stats = [
+      `❤️ MÁU (HP): ${Math.floor(GAME_DATA.player.hp)}/${GAME_DATA.player.maxHp}`,
+      `💧 MANA (MP): ${GAME_DATA.player.mp}/${GAME_DATA.player.maxMp}`,
+      `⚔️ TẤN CÔNG (ATK): ${GAME_DATA.player.attack}`,
+      `🛡️ PHÒNG NGỰ (DEF): ${GAME_DATA.player.defense}`,
+      `🏃 TỐC ĐỘ (SPD): 12`,
+      `💥 CHÍ MẠNG (CRIT): ${GAME_DATA.player.crit}%`,
+      `--------------------------`,
+      `📜 NHIỆM VỤ: TIÊU DIỆT 10 QUÁI VẬT`,
+      `• Tiến độ: ${window.defeatedMonsters.length}/10 Quái Vật`,
+      `• Phần thưởng: 500 VÀNG + HẠT GIỐNG`
+    ];
+
+    const statsLabel = this.add.text(w / 2 + 30, h / 2 - 135, stats.join('\n'), {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '600',
+      fontSize: '12px',
+      color: '#ffffff',
+      lineSpacing: 5
+    });
+
+    const closeBtn = this.add.rectangle(w / 2, h / 2 + 210, 180, 38, 0xb71c1c);
+    closeBtn.setInteractive({ useHandCursor: true });
+    const closeTxt = this.add.text(w / 2, h / 2 + 210, 'ĐÓNG [I/ESC]', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '13px',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+
+    closeBtn.on('pointerdown', () => this.toggleInventoryModal());
+
+    this.invContainer.add([dimmer, panel, title, leftCard, invTitle, eqLabel, rightCard, statsTitle, statsLabel, closeBtn, closeTxt]);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 6. COMBAT SCENE (QUIZ COMBAT UI - GIỐNG CÂU HỎI.PNG & GIAO DIỆN 5.PNG 100%)
+// ----------------------------------------------------------------------------
+class CombatScene extends Phaser.Scene {
+  constructor() {
+    super('CombatScene');
+  }
+
+  init(data) {
+    this.monsterData = data.monsterData;
+    this.playerX = data.playerX;
+    this.question = data.question;
+    this.timeLeft = 20;
+    this.timerEvent = null;
+    this.isAnswering = false;
+  }
+
+  create() {
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+
+    this.add.rectangle(w / 2, h / 2, w, h, 0x070914, 0.94);
+
+    // Combat ground platform at y = 415
+    const combatGroundY = 415;
+    this.add.rectangle(w / 2, combatGroundY + 5, w - 80, 8, 0x3a4b73).setDepth(2);
+    this.add.rectangle(w / 2, combatGroundY + 1, w - 80, 2, 0x6888c8).setDepth(3);
+
+    // Kael on the Left standing firmly on platform
+    this.playerSprite = this.add.sprite(220, combatGroundY, 'player_idle_0');
+    this.playerSprite.setOrigin(0.5, 1);
+    this.playerSprite.setScale(0.85);
+    this.playerSprite.setDepth(5);
+    if (this.anims.exists('anim_player_idle')) this.playerSprite.play('anim_player_idle');
+
+    const playerH = this.playerSprite.displayHeight || 160;
+    this.add.text(220, combatGroundY - playerH - 25, 'Kael - Hiệp Sĩ', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '12px',
+      color: '#00e5ff'
+    }).setOrigin(0.5).setDepth(6);
+
+    // Monster on the Right (Naturally facing left towards Kael)
+    let monTex = 'mon_' + this.monsterData.id;
+    if (!this.textures.exists(monTex)) {
+      if (this.monsterData.id === 'malakar_p1') monTex = 'mon_boss_malakar';
+      else if (this.monsterData.id === 'malakar_p2') monTex = 'mon_boss_malakar_p2';
+      else if (this.monsterData.type === 'boss') monTex = 'mon_boss_malakar';
+      else monTex = 'mon_slime';
+    }
+
+    const isBoss = this.monsterData.type === 'boss';
+    const isMedium = this.monsterData.type === 'medium';
+    const mScale = isBoss ? 1.15 : (isMedium ? 0.9 : 0.95);
+
+    this.monsterSprite = this.add.sprite(w - 240, combatGroundY, monTex);
+    this.monsterSprite.setOrigin(0.5, 1);
+    this.monsterSprite.setScale(mScale);
+    this.monsterSprite.setDepth(5);
+
+    // Face left towards Kael if naturally facing right
+    if (this.monsterData.id === 'panther' || this.monsterData.id === 'mushroom') {
+      this.monsterSprite.setFlipX(true);
+    }
+
+    const monH = this.monsterSprite.displayHeight || 160;
+    const monUiY = Math.min(combatGroundY - monH - 20, 260);
+
+    this.add.text(w - 240, monUiY - 25, this.monsterData.name, {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '12px',
+      color: this.monsterData.type === 'boss' ? '#ff3366' : '#ffaa00'
+    }).setOrigin(0.5).setDepth(6);
+
+    // Monster HP Bar in Combat
+    this.monHpBarFill = this.add.rectangle(w - 330, monUiY, 180, 14, 0xff2244).setOrigin(0, 0.5).setDepth(6);
+    const monHpBarBg = this.add.rectangle(w - 240, monUiY, 180, 14, 0x330000).setDepth(5);
+    monHpBarBg.setStrokeStyle(1, 0xffffff);
+
+    this.monHpText = this.add.text(w - 240, monUiY, `${this.monsterData.hp} HP`, {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '10.5px',
+      color: '#ffffff'
+    }).setOrigin(0.5).setDepth(7);
+
+    // Boss Giant HP Bar Banner if Boss Malakar
+    if (this.monsterData.type === 'boss') {
+      const bossBarBox = this.add.rectangle(w / 2, 45, 780, 48, 0x1a0510, 0.95).setDepth(10);
+      bossBarBox.setStrokeStyle(3, 0xff0044);
+      this.add.text(w / 2, 45, '👑 THẦN MA GIÁP HẮC ÁM (MALAKAR) - HP: 45,000 / 50,000 👑', {
+        fontFamily: '"Be Vietnam Pro", sans-serif',
+        fontWeight: '800',
+        fontSize: '13px',
+        color: '#ff2255'
+      }).setOrigin(0.5).setDepth(11);
+    }
+
+    this.createQuizUI();
+    this.startTimer();
+  }
+
+  createQuizUI() {
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+
+    const boxY = h - 165;
+    const qBox = this.add.rectangle(w / 2, boxY, w - 60, 240, 0x0e1322, 0.98);
+    qBox.setStrokeStyle(3, 0xffd700);
+
+    // Monster & Topic Header
+    this.add.text(w / 2, boxY - 95, `[ ${this.question.monsterTitle} ]`, {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '13px',
+      color: '#ffd700'
+    }).setOrigin(0.5);
+
+    const timerW = 380;
+    this.timerBarBg = this.add.rectangle(w / 2, boxY - 70, timerW, 10, 0x222233);
+    this.timerBarFill = this.add.rectangle(w / 2 - timerW / 2, boxY - 70, timerW, 10, 0x00ff88).setOrigin(0, 0.5);
+    this.timerText = this.add.text(w / 2 + timerW / 2 + 25, boxY - 70, '20s', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '13px',
+      color: '#00ff88'
+    }).setOrigin(0, 0.5);
+
+    this.qText = this.add.text(w / 2, boxY - 42, this.question.question, {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '700',
+      fontSize: '14px',
+      color: '#ffffff',
+      align: 'center',
+      wordWrap: { width: w - 120 },
+      lineSpacing: 6
+    }).setOrigin(0.5);
+
+    this.optionButtons = [];
+    const positions = [
+      { x: w / 2 - 280, y: boxY + 18 },
+      { x: w / 2 + 280, y: boxY + 18 },
+      { x: w / 2 - 280, y: boxY + 74 },
+      { x: w / 2 + 280, y: boxY + 74 }
+    ];
+
+    this.question.options.forEach((optText, idx) => {
+      const pos = positions[idx];
+      const btnBg = this.add.rectangle(pos.x, pos.y, 510, 44, 0x1b233a, 0.95);
+      btnBg.setStrokeStyle(2, 0x4a6fa5);
+
+      const label = this.add.text(pos.x - 240, pos.y, optText, {
+        fontFamily: '"Be Vietnam Pro", sans-serif',
+        fontWeight: '700',
+        fontSize: '12px',
+        color: '#ffffff',
+        align: 'left',
+        wordWrap: { width: 480 }
+      }).setOrigin(0, 0.5);
+
+      btnBg.setInteractive({ useHandCursor: true });
+
+      btnBg.on('pointerover', () => {
+        if (this.isAnswering) return;
+        btnBg.fillColor = 0x2d3a5e;
+        btnBg.setStrokeStyle(3, 0xffd700);
+        label.setColor('#ffd700');
+        audioSynth.playClick();
+      });
+
+      btnBg.on('pointerout', () => {
+        if (this.isAnswering) return;
+        btnBg.fillColor = 0x1b233a;
+        btnBg.setStrokeStyle(2, 0x4a6fa5);
+        label.setColor('#ffffff');
+      });
+
+      btnBg.on('pointerdown', () => {
+        if (this.isAnswering) return;
+        this.selectAnswer(idx, btnBg, label);
+      });
+
+      this.optionButtons.push({ bg: btnBg, label, originalText: optText });
+    });
+  }
+
+  startTimer() {
+    this.timeLeft = 20;
+    this.timerEvent = this.time.addEvent({
+      delay: 1000,
+      repeat: 20,
+      callback: () => {
+        if (this.isAnswering) return;
+        this.timeLeft--;
+        const ratio = Math.max(0, this.timeLeft / 20);
+        this.timerBarFill.width = 380 * ratio;
+
+        if (this.timeLeft <= 5) {
+          this.timerBarFill.fillColor = 0xff2244;
+          this.timerText.setColor('#ff2244');
+        } else if (this.timeLeft <= 10) {
+          this.timerBarFill.fillColor = 0xffaa00;
+          this.timerText.setColor('#ffaa00');
+        }
+
+        this.timerText.setText(`${this.timeLeft}s`);
+
+        if (this.timeLeft <= 0) {
+          this.handleTimeout();
+        }
+      }
+    });
+  }
+
+  selectAnswer(selectedIdx, btnBg, label) {
+    this.isAnswering = true;
+    if (this.timerEvent) this.timerEvent.remove();
+
+    const isCorrect = selectedIdx === this.question.correct;
+
+    if (isCorrect) {
+      btnBg.fillColor = 0x10552b;
+      btnBg.setStrokeStyle(3, 0x00ff88);
+      label.setText(`[ĐÚNG! ✔] ` + this.question.options[selectedIdx]);
+      label.setColor('#00ff88');
+
+      audioSynth.playCorrect();
+      this.time.delayedCall(450, () => this.executePlayerAttack());
+    } else {
+      btnBg.fillColor = 0x5a1020;
+      btnBg.setStrokeStyle(3, 0xff2244);
+      label.setText(`[SAI! ✖] ` + this.question.options[selectedIdx]);
+      label.setColor('#ff2244');
+
+      const correctBtn = this.optionButtons[this.question.correct];
+      correctBtn.bg.setStrokeStyle(3, 0x00ff88);
+      correctBtn.label.setColor('#00ff88');
+
+      audioSynth.playWrong();
+      this.time.delayedCall(600, () => this.executeMonsterAttack());
+    }
+  }
+
+  handleTimeout() {
+    this.isAnswering = true;
+    this.timerText.setText("HẾT GIỜ!");
+    audioSynth.playWrong();
+
+    const correctBtn = this.optionButtons[this.question.correct];
+    correctBtn.bg.setStrokeStyle(3, 0x00ff88);
+    correctBtn.label.setColor('#00ff88');
+
+    this.time.delayedCall(600, () => this.executeMonsterAttack());
+  }
+
+  executePlayerAttack() {
+    if (this.anims.exists('anim_player_attack')) {
+      this.playerSprite.play('anim_player_attack');
+    }
+    audioSynth.playSwordSlash();
+
+    this.tweens.add({
+      targets: this.playerSprite,
+      x: this.playerSprite.x + 90,
+      duration: 160,
+      yoyo: true,
+      onYoyo: () => {
+        audioSynth.playCritHit();
+        this.cameras.main.shake(250, 0.018);
+
+        const monMidY = this.monsterSprite.y - (this.monsterSprite.displayHeight / 2);
+        const slash = this.add.image(this.monsterSprite.x, monMidY, 'vfx_crit').setDepth(8);
+        slash.setScale(0.85);
+
+        this.tweens.add({
+          targets: slash,
+          alpha: 0,
+          scale: 1.3,
+          duration: 350,
+          onComplete: () => slash.destroy()
+        });
+
+        const dmgText = this.monsterData.type === 'boss' ? 'CRIT! -320' : 'CRIT! -150';
+        this.showFloatingDamage(this.monsterSprite.x, this.monsterSprite.y - this.monsterSprite.displayHeight - 15, dmgText, '#ffd700');
+
+        this.monsterSprite.setTint(0xff0000);
+        this.tweens.add({
+          targets: this.monsterSprite,
+          x: this.monsterSprite.x + 40,
+          alpha: 0.2,
+          duration: 300,
+          yoyo: true,
+          repeat: 1,
+          onComplete: () => {
+            this.monsterSprite.clearTint();
+            this.handleVictory();
+          }
+        });
+      }
+    });
+  }
+
+  executeMonsterAttack() {
+    audioSynth.playMonsterAttack();
+
+    this.tweens.add({
+      targets: this.monsterSprite,
+      x: this.monsterSprite.x - 90,
+      duration: 180,
+      yoyo: true,
+      onYoyo: () => {
+        audioSynth.playPlayerHurt();
+        this.cameras.main.shake(300, 0.022);
+
+        const playerMidY = this.playerSprite.y - (this.playerSprite.displayHeight / 2);
+        const monVfx = this.monsterData.type === 'boss' ? 'boss_dark_slash' : (this.monsterData.id === 'mushroom' ? 'vfx_poison' : 'vfx_slash');
+        if (this.textures.exists(monVfx)) {
+          const hit = this.add.image(this.playerSprite.x, playerMidY, monVfx).setScale(0.85).setDepth(8);
+          this.tweens.add({
+            targets: hit,
+            alpha: 0,
+            scale: 1.2,
+            duration: 350,
+            onComplete: () => hit.destroy()
+          });
+        }
+
+        this.playerSprite.setTint(0xff0000);
+        this.showFloatingDamage(this.playerSprite.x, this.playerSprite.y - this.playerSprite.displayHeight - 15, `-${this.monsterData.attack} HP`, '#ff2244');
+
+        GAME_DATA.player.hp = Math.max(0, GAME_DATA.player.hp - this.monsterData.attack);
+        if (GAME_DATA.player.hp <= 30 && GAME_DATA.player.hearts > 1) {
+          GAME_DATA.player.hearts--;
+        }
+
+        this.tweens.add({
+          targets: this.playerSprite,
+          x: this.playerSprite.x - 50,
+          duration: 250,
+          yoyo: true,
+          onComplete: () => {
+            this.playerSprite.clearTint();
+            if (GAME_DATA.player.hp <= 0) {
+              this.handlePlayerDefeat();
+            } else {
+              this.time.delayedCall(1200, () => this.resetForRetry());
+            }
+          }
+        });
+      }
+    });
+  }
+
+  resetForRetry() {
+    this.isAnswering = false;
+    this.optionButtons.forEach((btn) => {
+      btn.bg.fillColor = 0x1b233a;
+      btn.bg.setStrokeStyle(2, 0x4a6fa5);
+      btn.label.setText(btn.originalText);
+      btn.label.setColor('#ffffff');
+    });
+    this.startTimer();
+  }
+
+  handleVictory() {
+    GAME_DATA.player.gold += this.monsterData.gold;
+    GAME_DATA.player.exp += this.monsterData.exp;
+
+    audioSynth.playLevelUp();
+    this.showFloatingDamage(this.playerSprite.x, this.playerSprite.y - 90, `+${this.monsterData.gold} VÀNG`, '#ffd700');
+
+    if (GAME_DATA.player.exp >= GAME_DATA.player.maxExp) {
+      GAME_DATA.player.level++;
+      GAME_DATA.player.exp = 0;
+      GAME_DATA.player.maxExp += 50;
+      GAME_DATA.player.attack += 12;
+      GAME_DATA.player.defense += 8;
+      GAME_DATA.player.hp = GAME_DATA.player.maxHp;
+      this.showLevelUpNotification();
+    }
+
+    this.time.delayedCall(1600, () => {
+      if (this.question.id === 10) {
+        this.scene.stop('GameScene');
+        this.scene.start('VictoryScene');
+      } else {
+        this.scene.stop();
+        this.scene.resume('GameScene');
+        const gameScene = this.scene.get('GameScene');
+        if (gameScene) {
+          gameScene.handleDefeatedMonster(this.monsterData.id);
+        }
+      }
+    });
+  }
+
+  handlePlayerDefeat() {
+    this.cameras.main.fade(600, 0, 0, 0);
+    this.time.delayedCall(650, () => {
+      this.scene.stop('GameScene');
+      this.scene.start('GameOverScene');
+    });
+  }
+
+  showFloatingDamage(x, y, text, color) {
+    const dmg = this.add.text(x, y, text, {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '900',
+      fontSize: '18px',
+      color: color,
+      stroke: '#000000',
+      strokeThickness: 5
+    }).setOrigin(0.5);
+
+    this.tweens.add({
+      targets: dmg,
+      y: y - 50,
+      alpha: 0,
+      duration: 1000,
+      onComplete: () => dmg.destroy()
+    });
+  }
+
+  showLevelUpNotification() {
+    const w = this.cameras.main.width;
+    const banner = this.add.container(w / 2, 140);
+    const bg = this.add.rectangle(0, 0, 420, 52, 0x111c38, 0.95);
+    bg.setStrokeStyle(3, 0xffd700);
+
+    const txt = this.add.text(0, 0, `🪽 LÊN CẤP! (LV.${GAME_DATA.player.level}) 🪽`, {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '15px',
+      color: '#ffd700'
+    }).setOrigin(0.5);
+
+    banner.add([bg, txt]);
+    this.tweens.add({
+      targets: banner,
+      scale: 1.1,
+      duration: 250,
+      yoyo: true,
+      repeat: 3,
+      onComplete: () => banner.destroy()
+    });
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 7. VICTORY SCENE
+// ----------------------------------------------------------------------------
+class VictoryScene extends Phaser.Scene {
+  constructor() {
+    super('VictoryScene');
+  }
+
+  create() {
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+
+    this.add.rectangle(w / 2, h / 2, w, h, 0x081220);
+
+    for (let i = 0; i < 70; i++) {
+      const px = Phaser.Math.Between(0, w);
+      const py = Phaser.Math.Between(-50, h);
+      const colors = [0xffd700, 0x00ff88, 0x00e5ff, 0xff007f, 0xffffff];
+      const spark = this.add.circle(px, py, Phaser.Math.Between(2, 4), Phaser.Utils.Array.GetRandom(colors));
+      this.tweens.add({
+        targets: spark,
+        y: h + 50,
+        x: px + Phaser.Math.Between(-80, 80),
+        duration: Phaser.Math.Between(3000, 6000),
+        repeat: -1,
+        delay: Phaser.Math.Between(0, 2500)
+      });
+    }
+
+    const crown = this.add.text(w / 2, 110, '🌱✨ 👑 CHIẾN THẮNG 👑 ✨🌱', { fontSize: '28px' }).setOrigin(0.5);
+    this.tweens.add({
+      targets: crown,
+      scale: 1.1,
+      duration: 900,
+      yoyo: true,
+      repeat: -1
+    });
+
+    this.add.text(w / 2, 175, 'HẠT GIỐNG TRO TÀN ĐÃ NẢY MẦM VĨNH CỬU', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '900',
+      fontSize: '20px',
+      color: '#ffd700',
+      stroke: '#000',
+      strokeThickness: 5
+    }).setOrigin(0.5);
+
+    this.add.text(w / 2, 215, 'MA GIÁP MALAKAR ĐÃ BỊ PHONG ẤN BỞI ĐẠI SỐ VECTƠ!', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '14.5px',
+      color: '#00e5ff'
+    }).setOrigin(0.5);
+
+    const card = this.add.rectangle(w / 2, 375, 680, 230, 0x141e38, 0.95);
+    card.setStrokeStyle(3, 0xffd700);
+
+    const statsText = [
+      `⚔️ HIỆP SĨ: ${GAME_DATA.player.name} (CẤP ${GAME_DATA.player.level})`,
+      `👾 QUÁI VẬT TIÊU DIỆT: 10/10 (BAO GỒM BOSS MALAKAR)`,
+      `📐 CHUYÊN ĐỀ VECTƠ: THÀNH THẠO 10/10 LÝ THUYẾT`,
+      `🪙 TỔNG VÀNG THU THẬP: ${GAME_DATA.player.gold} VÀNG`,
+      `🌟 DANH HIỆU ĐẠT ĐƯỢC: ĐẠI THẦN ĐẠI SỐ VECTƠ`
+    ];
+
+    this.add.text(w / 2, 375, statsText.join('\n\n'), {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '700',
+      fontSize: '13px',
+      color: '#ffffff',
+      align: 'center',
+      lineSpacing: 8
+    }).setOrigin(0.5);
+
+    const btn = this.add.rectangle(w / 2, 540, 360, 48, 0x2e7d32);
+    btn.setStrokeStyle(2, 0xffd700);
+    const btnTxt = this.add.text(w / 2, 540, 'CHƠI LẠI TỪ ĐẦU', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '14px',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+
+    btn.setInteractive({ useHandCursor: true });
+    btn.on('pointerdown', () => {
+      audioSynth.playClick();
+      GAME_DATA.player.hp = GAME_DATA.player.maxHp;
+      GAME_DATA.player.hearts = 3;
+      GAME_DATA.player.gold = 50;
+      GAME_DATA.player.exp = 0;
+      GAME_DATA.player.level = 5;
+      window.defeatedMonsters = [];
+      this.scene.start('MenuScene');
+    });
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 8. GAME OVER SCENE
+// ----------------------------------------------------------------------------
+class GameOverScene extends Phaser.Scene {
+  constructor() {
+    super('GameOverScene');
+  }
+
+  create() {
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+
+    this.add.rectangle(w / 2, h / 2, w, h, 0x180509);
+
+    this.add.text(w / 2, 150, '💀', { fontSize: '48px' }).setOrigin(0.5);
+
+    const title = this.add.text(w / 2, 230, 'BẠN ĐÃ TỬ TRẬN', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '900',
+      fontSize: '32px',
+      color: '#ff2244',
+      stroke: '#000000',
+      strokeThickness: 6
+    }).setOrigin(0.5);
+
+    this.tweens.add({
+      targets: title,
+      scale: 1.05,
+      duration: 800,
+      yoyo: true,
+      repeat: -1
+    });
+
+    this.add.text(w / 2, 280, 'Bóng tối Malakar đã nuốt chửng linh hồn Kael...', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '600',
+      fontSize: '14px',
+      color: '#a0aec0'
+    }).setOrigin(0.5);
+
+    const tipBox = this.add.rectangle(w / 2, 380, 620, 120, 0x2b0f16, 0.9);
+    tipBox.setStrokeStyle(2, 0xff2244);
+
+    const tips = [
+      'GỢI Ý VECTƠ:',
+      '• Hai vectơ bằng nhau khi CÙNG HƯỚNG và CÙNG ĐỘ DÀI.',
+      '• Quy tắc 3 điểm: AB⃗ + BC⃗ = AC⃗ (nối đuôi điểm B).',
+      '• Mua thêm Bình Máu tại Cửa Hàng Arthur trước khi chiến đấu!'
+    ];
+
+    this.add.text(w / 2, 380, tips.join('\n\n'), {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '600',
+      fontSize: '13px',
+      color: '#ffcccc',
+      lineSpacing: 8
+    }).setOrigin(0.5);
+
+    const btn = this.add.rectangle(w / 2, 510, 320, 48, 0x991b1b);
+    btn.setStrokeStyle(2, 0xffd700);
+    const btnTxt = this.add.text(w / 2, 510, 'HỒI SINH (THỬ LẠI)', {
+      fontFamily: '"Be Vietnam Pro", sans-serif',
+      fontWeight: '800',
+      fontSize: '14px',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+
+    btn.setInteractive({ useHandCursor: true });
+    btn.on('pointerdown', () => {
+      audioSynth.playClick();
+      GAME_DATA.player.hp = GAME_DATA.player.maxHp;
+      GAME_DATA.player.hearts = 3;
+      this.scene.start('GameScene', { playerX: 140 });
+    });
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 9. PHASER INITIALIZATION
+// ----------------------------------------------------------------------------
+window.addEventListener('load', () => {
+  const config = {
+    type: Phaser.AUTO,
+    parent: 'game-container',
+    pixelArt: true,
+    roundPixels: true,
+    scale: {
+      mode: Phaser.Scale.FIT,
+      parent: 'game-container',
+      autoCenter: Phaser.Scale.CENTER_BOTH,
+      width: 1280,
+      height: 720
+    },
+    physics: {
+      default: 'arcade',
+      arcade: {
+        gravity: { y: 880 },
+        debug: false
+      }
+    },
+    scene: [
+      PreloadScene,
+      MenuScene,
+      GameScene,
+      CombatScene,
+      VictoryScene,
+      GameOverScene
+    ]
+  };
+
+  window.game = new Phaser.Game(config);
+
+  // Mobile Virtual Touch Controls
+  window.touchControls = {
+    left: false,
+    right: false,
+    jump: false,
+    interact: false,
+    interactJustPressed: false
+  };
+
+  const virtualControlsEl = document.getElementById('virtual-controls');
+  const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 1024);
+
+  window.showVirtualControls = () => {
+    if (virtualControlsEl && (isTouchDevice || window.innerWidth <= 1024)) {
+      virtualControlsEl.classList.add('visible');
+    }
+  };
+
+  window.hideVirtualControls = () => {
+    if (virtualControlsEl) {
+      virtualControlsEl.classList.remove('visible');
+    }
+  };
+
+  function bindTouchBtn(btnId, onDown, onUp) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    const startAction = (e) => {
+      if (e.cancelable) e.preventDefault();
+      btn.classList.add('active');
+      if (navigator.vibrate) try { navigator.vibrate(12); } catch(err){}
+      onDown();
+    };
+    const endAction = (e) => {
+      if (e.cancelable) e.preventDefault();
+      btn.classList.remove('active');
+      onUp();
+    };
+    btn.addEventListener('pointerdown', startAction);
+    btn.addEventListener('pointerup', endAction);
+    btn.addEventListener('pointercancel', endAction);
+    btn.addEventListener('pointerleave', endAction);
+    btn.addEventListener('touchstart', startAction, { passive: false });
+    btn.addEventListener('touchend', endAction, { passive: false });
+    btn.addEventListener('touchcancel', endAction, { passive: false });
+  }
+
+  bindTouchBtn('vbtn-left', 
+    () => { window.touchControls.left = true; }, 
+    () => { window.touchControls.left = false; }
+  );
+
+  bindTouchBtn('vbtn-right', 
+    () => { window.touchControls.right = true; }, 
+    () => { window.touchControls.right = false; }
+  );
+
+  bindTouchBtn('vbtn-jump', 
+    () => { window.touchControls.jump = true; }, 
+    () => { window.touchControls.jump = false; }
+  );
+
+  bindTouchBtn('vbtn-interact', 
+    () => {
+      window.touchControls.interact = true;
+      window.touchControls.interactJustPressed = true;
+    }, 
+    () => { window.touchControls.interact = false; }
+  );
+
+  // Mobile Orientation Hint Logic
+  const orientHint = document.getElementById('orientation-hint');
+  const dismissOrientBtn = document.getElementById('dismiss-orient-btn');
+  let orientDismissed = false;
+
+  const checkOrientation = () => {
+    if (orientDismissed) return;
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth <= 900;
+    if (orientHint) {
+      if (isPortrait && isTouchDevice) {
+        orientHint.classList.add('active');
+      } else {
+        orientHint.classList.remove('active');
+      }
+    }
+  };
+
+  if (dismissOrientBtn) {
+    dismissOrientBtn.addEventListener('click', () => {
+      orientDismissed = true;
+      if (orientHint) orientHint.classList.remove('active');
+    });
+  }
+
+  window.addEventListener('resize', checkOrientation);
+  window.addEventListener('orientationchange', () => {
+    setTimeout(checkOrientation, 200);
+  });
+  checkOrientation();
+
+  // Mobile AudioContext auto-unlock on first touch
+  window.addEventListener('touchstart', () => audioSynth.resume(), { once: true });
+
+  const muteBtn = document.getElementById('mute-btn');
+  const muteIcon = document.getElementById('mute-icon');
+  const muteText = document.getElementById('mute-text');
+  const toggleSound = () => {
+    const isMuted = audioSynth.toggleMute();
+    if (muteIcon) muteIcon.textContent = isMuted ? '🔇' : '🔊';
+    if (muteText) muteText.textContent = isMuted ? 'ĐÃ TẮT TIẾNG [M]' : 'ÂM THANH [M]';
+  };
+  if (muteBtn) {
+    muteBtn.addEventListener('click', toggleSound);
+  }
+
+  const fullscreenBtn = document.getElementById('fullscreen-btn');
+  const fsIcon = document.getElementById('fs-icon');
+  const fsText = document.getElementById('fs-text');
+  const stretchBtn = document.getElementById('stretch-btn');
+
+  let isCssFullscreen = false;
+  let isStretchMode = false;
+
+  const updateFullscreenUI = (isFS) => {
+    if (fsIcon) fsIcon.textContent = isFS ? '🗗' : '🖥️';
+    if (fsText) fsText.textContent = isFS ? 'THU NHỎ [F]' : 'TOÀN MÀN HÌNH [F]';
+    if (fullscreenBtn) fullscreenBtn.setAttribute('title', isFS ? 'Thu nhỏ màn hình [Phím F hoặc ESC]' : 'Phóng to Toàn màn hình [Phím F hoặc F11]');
+    if (window.game && window.game.scale) {
+      window.game.scale.refresh();
+      setTimeout(() => { if (window.game && window.game.scale) window.game.scale.refresh(); }, 120);
+    }
+  };
+
+  const activateCssFullscreen = () => {
+    isCssFullscreen = true;
+    document.body.classList.add('is-fullscreen');
+    const container = document.getElementById('game-container');
+    if (container) container.classList.add('pseudo-fullscreen');
+    updateFullscreenUI(true);
+  };
+
+  const deactivateCssFullscreen = () => {
+    isCssFullscreen = false;
+    document.body.classList.remove('is-fullscreen');
+    const container = document.getElementById('game-container');
+    if (container) container.classList.remove('pseudo-fullscreen');
+    updateFullscreenUI(false);
+  };
+
+  const toggleFullScreen = () => {
+    // Check if in Native Fullscreen
+    const nativeFS = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+
+    if (nativeFS) {
+      if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      else if (document.msExitFullscreen) document.msExitFullscreen();
+      deactivateCssFullscreen();
+      return;
+    }
+
+    if (isCssFullscreen) {
+      deactivateCssFullscreen();
+      return;
+    }
+
+    // 1. Try Phaser scale manager fullscreen
+    if (window.game && window.game.scale && typeof window.game.scale.startFullscreen === 'function') {
+      try {
+        window.game.scale.startFullscreen();
+        isCssFullscreen = false;
+        document.body.classList.add('is-fullscreen');
+        updateFullscreenUI(true);
+        return;
+      } catch (err) {
+        console.warn('Phaser startFullscreen failed, trying native requestFullscreen', err);
+      }
+    }
+
+    // 2. Try HTML5 standard requestFullscreen on documentElement
+    const docEl = document.documentElement || document.getElementById('game-container') || document.body;
+    const reqFn = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+
+    if (reqFn) {
+      try {
+        const promise = reqFn.call(docEl);
+        if (promise && typeof promise.then === 'function') {
+          promise.then(() => {
+            isCssFullscreen = false;
+            document.body.classList.add('is-fullscreen');
+            updateFullscreenUI(true);
+          }).catch((err) => {
+            console.warn('Native requestFullscreen blocked, activating CSS Fullscreen fallback:', err);
+            activateCssFullscreen();
+          });
+          return;
+        } else {
+          isCssFullscreen = false;
+          document.body.classList.add('is-fullscreen');
+          updateFullscreenUI(true);
+          return;
+        }
+      } catch (e) {
+        console.warn('requestFullscreen exception, using fallback:', e);
+        activateCssFullscreen();
+        return;
+      }
+    }
+
+    // 3. Fallback if Fullscreen API is unavailable
+    activateCssFullscreen();
+  };
+
+  if (fullscreenBtn) {
+    fullscreenBtn.addEventListener('click', toggleFullScreen);
+  }
+
+  // Toggle Stretch Fill Mode (Phóng to tràn viền 100%)
+  const toggleStretchMode = () => {
+    isStretchMode = !isStretchMode;
+    const container = document.getElementById('game-container');
+    if (container) {
+      if (isStretchMode) container.classList.add('stretch-mode');
+      else container.classList.remove('stretch-mode');
+    }
+    if (stretchBtn) {
+      stretchBtn.innerHTML = isStretchMode 
+        ? '<span class="btn-icon">📐</span> <span class="btn-text">CHUẨN 16:9 [Z]</span>'
+        : '<span class="btn-icon">📐</span> <span class="btn-text">TRÀN VIỀN [Z]</span>';
+    }
+    if (window.game && window.game.scale) {
+      window.game.scale.refresh();
+      setTimeout(() => { if (window.game && window.game.scale) window.game.scale.refresh(); }, 100);
+    }
+  };
+
+  if (stretchBtn) {
+    stretchBtn.addEventListener('click', toggleStretchMode);
+  }
+
+  document.addEventListener('fullscreenchange', () => {
+    const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
+    isCssFullscreen = isFS;
+    if (isFS) document.body.classList.add('is-fullscreen');
+    else document.body.classList.remove('is-fullscreen');
+    updateFullscreenUI(isFS);
+  });
+
+  window.addEventListener('resize', () => {
+    if (window.game && window.game.scale) {
+      window.game.scale.refresh();
+      setTimeout(() => { if (window.game && window.game.scale) window.game.scale.refresh(); }, 100);
+    }
+  });
+
+  // Global PC Hotkeys: [F] Fullscreen, [Z] Stretch Fill, [M] Mute sound, [Escape] Exit Fullscreen
+  window.addEventListener('keydown', (e) => {
+    if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+
+    if (e.key === 'f' || e.key === 'F') {
+      toggleFullScreen();
+    } else if (e.key === 'z' || e.key === 'Z') {
+      toggleStretchMode();
+    } else if (e.key === 'm' || e.key === 'M') {
+      toggleSound();
+    } else if (e.key === 'Escape' && isCssFullscreen) {
+      toggleFullScreen();
+    }
+  });
+});
+  </script>
+</body>
+</html>
